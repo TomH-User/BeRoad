@@ -25,7 +25,7 @@ const SignIn = () => {
   
   const submit = async () => {
     if (form.email === "" || form.password === "") {
-      Alert.alert('Error', 'Please fill all the fields')
+      Alert.alert('Error', 'Merci de renseigner tous les champs')
     }
     
     setSubmitting(true);
@@ -36,8 +36,7 @@ const SignIn = () => {
       setUser(result);
       setIsLogged(true);
       
-      Alert.alert('Success', 'User signed in successfully');
-      router.replace("/home");  
+      router.replace("/accueil");  
     } catch (error) {
       Alert.alert('Error', (error as Error).message)
     } finally {
@@ -57,11 +56,11 @@ const SignIn = () => {
 
           <Text 
             className='text-2xl text-gray-100 text-semibold font-psemibold'>
-            Log in to BeRoad
+            Se connecter à BeRoad
           </Text>
 
           <FormField 
-            title="Email"
+            title="E-mail"
             value={form.email}
             handleChangeText={(e: string) => setForm({...form, email: e})}
             otherStyles='mt-7'
@@ -69,14 +68,14 @@ const SignIn = () => {
           />
 
           <FormField 
-            title="Password"
+            title="Mot de passe"
             value={form.password}
             handleChangeText={(e: string) => setForm({...form, password: e})}
             otherStyles='mt-7'
           />
 
           <CustomButton
-            title='Sign in'
+            title='Se connecter'
             handlePress={submit}
             containerStyles='mt-7'
             isLoading={isSubmitting}
@@ -84,11 +83,11 @@ const SignIn = () => {
 
           <View className='justify-center flex-row gap-2 pt-5'>
             <Text className='text-lg text-gray-100 font-pregular'>
-              Don't have an account ?
+              Vous n'avez pas de compte ?
             </Text>
             <Link href='/sign-up'>
               <Text className='text-lg text-secondary font-psemibold'>
-                Sign up
+                S'inscrire
               </Text>
             </Link>
           </View>

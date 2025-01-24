@@ -12,7 +12,7 @@ export default function App() {
   const {isLoading, isLoggedIn} = useGlobalContext();
 
   if (!isLoading && isLoggedIn) 
-    return <Redirect href="/home"/>;
+    return <Redirect href="/accueil"/>;
 
 
   return (
@@ -38,7 +38,7 @@ export default function App() {
           />
           </View>
           <CustomButton 
-            title="Continuer avec son Email"
+            title="Continuer avec son email"
             handlePress={() => {router.push('/sign-in')}}
             containerStyles="w-full mt-8"
           />

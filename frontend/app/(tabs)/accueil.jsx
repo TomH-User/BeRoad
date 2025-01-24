@@ -126,7 +126,7 @@ const Home = () => {
       <View style={styles.topBar}>
         <TextInput
           style={styles.input}
-          placeholder="Entrez l'adresse de destination"
+          placeholder="Entrez votre destination"
           value={destination}
           onChangeText={setDestination}
         />

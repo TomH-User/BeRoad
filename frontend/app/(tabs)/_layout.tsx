@@ -42,15 +42,15 @@ const TabsLayout = () => {
         }}
       >
         <Tabs.Screen 
-          name="home"
+          name="accueil"
           options={{
-            title: 'Home',
+            title: 'Accueil',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.home}
                 color={color}
-                name="Home"
+                name="Accueil"
                 focused={focused}
               />
             )
@@ -58,15 +58,15 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen 
-          name="bookmark"
+          name="meteo"
           options={{
-            title: 'Bookmark',
+            title: 'Metéo',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.bookmark}
                 color={color}
-                name="Bookmark"
+                name="Meteo"
                 focused={focused}
               />
             )
@@ -74,15 +74,15 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen 
-          name="create"
+          name="crew"
           options={{
-            title: 'Create',
+            title: 'Crew',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.plus}
                 color={color}
-                name="Create"
+                name="Crew"
                 focused={focused}
               />
             )
@@ -90,15 +90,15 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen 
-          name="profile"
+          name="profil"
           options={{
-            title: 'Profile',
+            title: 'Profil',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.profile}
                 color={color}
-                name="Profile"
+                name="Profil"
                 focused={focused}
               />
             )
