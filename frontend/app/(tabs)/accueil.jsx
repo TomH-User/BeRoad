@@ -5,6 +5,11 @@ import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+//KPI météo dynamique
+import { Image } from 'react-native';
+//Icone de recherche 
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 
 const API_KEY = "ad761fb4199ddca53a345fafab5a4cf9";
 
@@ -16,6 +21,9 @@ const Home = () => {
   const [weather, setWeather] = useState(null);
   const [showWeather, setShowWeather] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState(null);
+
+  //Icone de recherche
+  const [isSearchVisible, setSearchVisible] = useState(false);  // Pour afficher/masquer la barre de recherche
 
   useEffect(() => {
     (async () => {
@@ -33,6 +41,8 @@ const Home = () => {
         longitudeDelta: 0.0421,
       });
 
+    
+
       fetchWeather(location.coords.latitude, location.coords.longitude);
     })();
   }, []);
@@ -48,7 +58,7 @@ const Home = () => {
       return;
     }
 
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=fr`;
 
     try {
       const response = await axios.get(url);
@@ -178,10 +188,22 @@ const Home = () => {
         </MapView>
       )}
 
-      {showWeather && weather && (
+      {showWeather && weather && weather.weather && weather.weather[0].icon && (
         <View style={styles.weatherContainer}>
-          <Text style={styles.weatherText}>🌡 {weather.main.temp}°C</Text>
-          <Text style={styles.weatherText}>🌧 {weather.weather[0].description}</Text>
+          <View style={styles.weatherContent}>
+            {/* Icône météo dynamique */}
+            <Image 
+              source={{ uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png` }} 
+              style={styles.weatherIcon} 
+            />
+            <View>
+              <Text style={styles.weatherText}> 
+                {Math.floor(weather.main.temp)}°C 
+              </Text>
+              
+              <Text style={styles.weatherDesc}>{weather.weather[0].description}</Text>
+            </View>
+          </View>
         </View>
       )}
 
@@ -197,14 +219,37 @@ const styles = StyleSheet.create({
   input: { width: '90%', height: 40, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 8, borderRadius: 5, marginBottom: 10 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
   map: { flex: 1 },
+  
+  
+  //KPI météo dynamique
   weatherContainer: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    top: 160, 
+    left: 10,  // Positionnement en haut à gauche
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond semi-transparent
     padding: 10,
     borderRadius: 10,
+    flexDirection: 'row',  // Disposition horizontale (icône + texte)
     alignItems: 'center',
+    minWidth: 120, // Largeur fixe
   },
-  weatherText: { fontSize: 16, fontWeight: 'bold' },
+  weatherContent: {
+    flexDirection: 'row',  // Alignement horizontal (icône à gauche, texte à droite)
+    alignItems: 'center',  // Alignement vertical centré
+  },
+  weatherIcon: {
+    width: 50, // Taille de l'icône
+    height: 50, 
+    marginRight: 5, // Espacement entre l'icône et le texte
+  },
+  weatherText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',  // Texte blanc pour contraster
+  },
+  weatherDesc: {
+    fontSize: 16,
+    color: '#ccc', // Couleur plus claire pour la description
+  },
+  
 });
