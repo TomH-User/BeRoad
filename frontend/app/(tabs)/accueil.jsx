@@ -176,7 +176,7 @@ const Home = () => {
       </View>
 
       {region && (
-        <MapView style={styles.map} initialRegion={region}>
+        <MapView provider="google" style={styles.map} initialRegion={region}>
           <Marker coordinate={region} title="Votre position" />
           {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
           {showWeather && <UrlTile
