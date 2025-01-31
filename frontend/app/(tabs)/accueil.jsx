@@ -7,11 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 //KPI météo dynamique
 import { Image } from 'react-native';
-//Icone de recherche 
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-
-const API_KEY = "ad761fb4199ddca53a345fafab5a4cf9";
+const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
 const Home = () => {
   const [region, setRegion] = useState(null);
