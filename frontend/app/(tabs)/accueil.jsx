@@ -87,8 +87,6 @@ const Home = () => {
   };
 
   //Version RainViewer
-  
-
   const fetchRainViewerTiles = async () => {
       try {
           const response = await axios.get("https://api.rainviewer.com/public/weather-maps.json");
@@ -103,18 +101,20 @@ const Home = () => {
       }
     };
 
-  useEffect(() => {
-      let interval;
-      if (showWeather) {
+    useEffect(() => {
+      if (region) {  // Vérification si region est défini avant d'utiliser
+        let interval;
+        if (showWeather) {
           fetchWeather(region.latitude, region.longitude);
           fetchRainViewerTiles();
           interval = setInterval(() => {
-              fetchWeather(region.latitude, region.longitude);
-              fetchRainViewerTiles();
+            fetchWeather(region.latitude, region.longitude);
+            fetchRainViewerTiles();
           }, 10 * 60 * 1000);
+        }
+        return () => clearInterval(interval);
       }
-      return () => clearInterval(interval);
-  }, [showWeather, region]);
+    }, [showWeather, region]);
 
   ///////////////////////////////////////////
 
@@ -255,6 +255,7 @@ const Home = () => {
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView style={styles.map} initialRegion={region}>
                   <Marker coordinate={region} title="Votre position" />
+                  
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
                     urlTemplate={rainLayerUrl}
