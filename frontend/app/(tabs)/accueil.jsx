@@ -1,29 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Button, TextInput, Text, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { StyleSheet, View, StatusBar, TextInput, TouchableOpacity, Text, Alert, Animated, PanResponder, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-//KPI météo dynamique
 import { Image } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import debounce from "lodash.debounce";
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
 const Home = () => {
-  const [region, setRegion] = useState(null);
-  const [destination, setDestination] = useState('');
-  const [route, setRoute] = useState(null);
-  
-  const [weather, setWeather] = useState(null);
-  const [showWeather, setShowWeather] = useState(true);
-  const [lastFetchTime, setLastFetchTime] = useState(null);
+  const [region, setRegion] = useState(null); // Coordonnées de la position actuelle
+  const [destination, setDestination] = useState(''); // Adresse de destination
+  const [route, setRoute] = useState(null);  // Coordonnées de l'itinéraire
+  const [weather, setWeather] = useState(null); // Données météo
+  const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
+  const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
 
-  //Icone de recherche
-  const [isSearchVisible, setSearchVisible] = useState(false);  // Pour afficher/masquer la barre de recherche
+
+  const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10, // Activer si l'utilisateur glisse verticalement
+      onPanResponderMove: (_, gestureState) => {
+        panelHeight.setValue(Math.max(50, Math.min(300, 200 - gestureState.dy))); // Limite entre 50 et 300 px
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        Animated.timing(panelHeight, {
+          toValue: gestureState.dy < 0 ? 350 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+      },
+    })
+  ).current;
+
 
   useEffect(() => {
+    // StatusBar.setHidden(true);  // A implémenter pour avoir plein écran
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -35,11 +52,9 @@ const Home = () => {
       setRegion({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
       });
-
-    
 
       fetchWeather(location.coords.latitude, location.coords.longitude);
     })();
@@ -61,7 +76,6 @@ const Home = () => {
     try {
       const response = await axios.get(url);
       setWeather(response.data);
-      setLastFetchTime(now);
       await AsyncStorage.setItem('weatherData', JSON.stringify(response.data));
       await AsyncStorage.setItem('weatherTimestamp', now.toString());
     } catch (error) {
@@ -85,7 +99,6 @@ const Home = () => {
     }
   };
   
-
   const getRoute = async () => {
     if (!region) {
       Alert.alert('Erreur', 'La localisation actuelle est indisponible.');
@@ -100,11 +113,13 @@ const Home = () => {
     const destinationCoords = await getCoordinatesFromAddress(destination);
     if (!destinationCoords) return;
 
-    const url = `http://router.project-osrm.org/route/v1/car/${region.longitude},${region.latitude};${destinationCoords.longitude},${destinationCoords.latitude}?overview=full&geometries=polyline`;
+    const url = `http://router.project-osrm.org/route/v1/car/${region.longitude},${region.latitude};${destinationCoords.longitude},${destinationCoords.latitude}?overview=full&geometries=polyline&steps=true`;
+
 
     try {
       const response = await axios.get(url, { headers: { "User-Agent": "BeRoadApp/1.0" } });
-      const geometry = response.data.routes[0]?.geometry;    
+      console.log(response.data);
+      const geometry = response.data.routes[0]?.geometry;
       if (!geometry) {
         Alert.alert('Erreur', 'Aucun itinéraire trouvé.');
         return;
@@ -119,6 +134,50 @@ const Home = () => {
     }
   };
 
+  const getAddressSuggestions = async (query) => {
+    if (query.length < 3) return []; // Ne cherche qu'après 3 lettres pour éviter trop de requêtes
+  
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=fr`,
+        { headers: { "User-Agent": "BeRoadApp/1.0" } }
+      );
+  
+      return response.data.map((item) => ({
+        label: item.display_name, // Adresse complète
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+      }));
+    } catch (error) {
+      console.error("Erreur lors de la récupération des adresses :", error);
+      return [];
+    }
+  };
+  
+  const debouncedGetSuggestions = useCallback(
+    debounce(async (text) => {
+      if (text.length >= 3) {
+        const newSuggestions = await getAddressSuggestions(text);
+        setSuggestions(newSuggestions);
+      }
+    }, 1000), 
+    []
+  );
+
+  const handleAddressChange = async (text) => {
+    setDestination(text);
+    setSuggestions([]); // Cache les suggestions lors de la saisie
+    debouncedGetSuggestions(text);
+  };
+
+
+  const handleSelectAddress = (selected) => {
+    setDestination(selected.label);
+    setSuggestions([]); // Cache les suggestions après sélection
+    getRoute();
+  };
+
+  
   const decodePolyline = (encoded) => {
     let points = [];
     let index = 0;
@@ -153,59 +212,125 @@ const Home = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topBar}>
-        <TextInput
-          style={styles.input}
-          placeholder="Entrez votre destination"
-          value={destination}
-          onChangeText={setDestination}
-        />
-      <View style={styles.buttonContainer}>
-        <Button
-          title={showWeather ? "Désactiver météo" : "Afficher météo"}
-          onPress={() => {
-            if (!showWeather) {
-              fetchWeather(region.latitude, region.longitude);
-            }
-            setShowWeather(!showWeather);
-          }}
-        />
-        <Button title="Tracer l'itinéraire" onPress={getRoute} />
-      </View>
-      </View>
+    <View style={styles.container}>
 
-      {region && (
-        <MapView provider="google" style={styles.map} initialRegion={region}>
-          <Marker coordinate={region} title="Votre position" />
-          {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
-          {showWeather && <UrlTile
-            urlTemplate={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`}
-            zIndex={2}
-          />}
-        </MapView>
-      )}
-
-      {showWeather && weather && weather.weather && weather.weather[0].icon && (
-        <View style={styles.weatherContainer}>
-          <View style={styles.weatherContent}>
-            {/* Icône météo dynamique */}
-            <Image 
-              source={{ uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png` }} 
-              style={styles.weatherIcon} 
-            />
-            <View>
-              <Text style={styles.weatherText}> 
-                {Math.floor(weather.main.temp)}°C 
-              </Text>
-              
-              <Text style={styles.weatherDesc}>{weather.weather[0].description}</Text>
+          {/* Affichage de la Map avec le tracé de l'itinéraire */}
+          {region && (
+             <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+              <MapView style={styles.map} initialRegion={region}>
+                  <Marker coordinate={region} title="Votre position" />
+                  {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
+                  {showWeather && <UrlTile
+                    urlTemplate={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`}
+                    zIndex={2}
+                  />}
+              </MapView>
             </View>
-          </View>
-        </View>
-      )}
+          )}
 
-    </SafeAreaView>
+          {/* Bouton d'activation de la météo */}
+          <View style={{ position: 'absolute', top: 60, right: 20, zIndex: 10 }}>
+            <TouchableOpacity
+                onPress={() => {
+                  if (!showWeather) {
+                    fetchWeather(region.latitude, region.longitude);
+                  }
+                  setShowWeather(!showWeather); // Alterne entre afficher et masquer la météo
+                }}
+             >
+                <Icon 
+                  name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
+                  size={30} // Taille de l'icône
+                  color="black" // Couleur de l'icône, tu peux ajuster ça
+                />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Affichage de la météo */}
+          {showWeather && weather && weather.weather && weather.weather[0].icon && (
+            <View style={styles.weatherContainer}>
+              <View style={styles.weatherContent}>
+                {/* Icône météo dynamique */}
+                <Image 
+                  source={{ uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png` }} 
+                  style={styles.weatherIcon} 
+                />
+                <View>
+                  <Text style={styles.weatherText}> 
+                    {Math.floor(weather.main.temp)}°C 
+                  </Text>
+                  
+                  <Text style={styles.weatherDesc}>{weather.weather[0].description}</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+        {/* Barre de recherche dépliable/repliable */}
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Animated.View
+            style={{
+              height: panelHeight,
+              backgroundColor: '#f0f0f0',
+              padding: 10,
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+            }}
+            {...panResponder.panHandlers}
+          >
+            <View style={{ height: 20, alignItems: 'center' }}>
+              <View style={{ width: 50, height: 5, backgroundColor: 'gray', borderRadius: 5, marginBottom: 10 }} />
+            </View>
+
+            <View style={{ padding: 10 }}>
+              <TextInput
+                style={{
+                  height: 40,
+                  borderColor: 'gray',
+                  borderWidth: 1,
+                  paddingHorizontal: 10,
+                  borderRadius: 5,
+                  marginBottom: 10,
+                }}
+                placeholder="Entrez votre destination"
+                value={destination}
+                onChangeText={handleAddressChange}
+              />
+
+              {/* Liste des suggestions */}
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{
+                      padding: 10,
+                      borderBottomWidth: 1,
+                      backgroundColor: "#fff",
+                    }}
+                    onPress={() => handleSelectAddress(item)}
+                  >
+                    <Text>{item.label}</Text>
+                  </TouchableOpacity>
+                )}
+                style={{
+                  maxHeight: 150,
+                  backgroundColor: "white",
+                  borderColor: "gray",
+                  borderWidth: 1,
+                  position: "absolute",
+                  top: 50,
+                  left: 10,
+                  right: 10,
+                  zIndex: 1000, // Assure que la liste est au-dessus des autres éléments
+                }}
+              />
+
+            </View>
+          </Animated.View>
+        </View>
+    
+    </View>
   );
 };
 
@@ -222,7 +347,7 @@ const styles = StyleSheet.create({
   //KPI météo dynamique
   weatherContainer: {
     position: 'absolute',
-    top: 160, 
+    top: 50, 
     left: 10,  // Positionnement en haut à gauche
     backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond semi-transparent
     padding: 10,
@@ -236,8 +361,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',  // Alignement vertical centré
   },
   weatherIcon: {
-    width: 50, // Taille de l'icône
-    height: 50, 
+    width: 40, // Taille de l'icône
+    height: 40, 
     marginRight: 5, // Espacement entre l'icône et le texte
   },
   weatherText: {
