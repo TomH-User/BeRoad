@@ -1,0 +1,21 @@
+{
+    "pseudo": "motardDuDimanche",
+    "avatar": "http://exemple.com/avatar2.jpg",
+    "phone": "+33765432109",
+    "email": "motard@example.com",
+    "motoPicture": "http://exemple.com/moto2.jpg",
+    "motoModel": "Yamaha MT-07",
+    "drivingType": [
+      "Road trips longue distance",
+      "Off-road / Tout-terrain"
+    ],
+    "preferredBikeType": [
+      "Trail / Adventure",
+      "Touring"
+    ],
+    "communityExperiences": [
+      "Voyager à l’étranger en moto",
+      "Découvrir de nouveaux itinéraires"
+    ],
+    "socialMedia": "https://exemple.com/profilmoto"
+  }

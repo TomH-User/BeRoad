@@ -1,0 +1,21 @@
+{
+    "pseudo": "bikerPasionné",
+    "avatar": "http://exemple.com/avatar3.jpg",
+    "phone": "+33698765432",
+    "email": "biker@example.com",
+    "motoPicture": "http://exemple.com/moto3.jpg",
+    "motoModel": "Ducati Monster",
+    "drivingType": [
+      "Conduite sportive",
+      "Moto urbaine"
+    ],
+    "preferredBikeType": [
+      "Sportive",
+      "Custom / Cruiser"
+    ],
+    "communityExperiences": [
+      "Participer à des événements moto",
+      "Conduite en groupe"
+    ],
+    "socialMedia": "https://exemple.com/profilbiker"
+  }
