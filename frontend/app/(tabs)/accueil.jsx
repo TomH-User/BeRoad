@@ -254,8 +254,9 @@ const Home = () => {
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView style={styles.map} initialRegion={region}>
-                  <Marker coordinate={region} title="Votre position" />
-                  
+                  <Marker coordinate={region} title="Votre position" >
+                    <Icon name="motorbike" size={50} color="white" />
+                  </Marker>
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
                     urlTemplate={rainLayerUrl}
