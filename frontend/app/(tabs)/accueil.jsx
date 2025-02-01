@@ -9,6 +9,7 @@ import { Image } from 'react-native';
 import debounce from "lodash.debounce";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Linking } from 'react-native';
+import { DeviceMotion } from 'expo-sensors';
 
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
@@ -21,6 +22,7 @@ const Home = () => {
   const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
   const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
   const [rainLayerUrl, setRainLayerUrl] = useState(null); // URL de la couche de pluie
+  const mapRef = useRef(null);
 
 
   const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
@@ -43,14 +45,14 @@ const Home = () => {
 
 
   useEffect(() => {
-    // StatusBar.setHidden(true);  // A implémenter pour avoir plein écran
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission refusée', 'La géolocalisation est requise pour utiliser cette fonctionnalité.');
         return;
       }
-
+  
+      // Obtenir la position actuelle
       let location = await Location.getCurrentPositionAsync({});
       setRegion({
         latitude: location.coords.latitude,
@@ -58,10 +60,37 @@ const Home = () => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       });
-
+  
       fetchWeather(location.coords.latitude, location.coords.longitude);
+  
+      // Activer le suivi en temps réel
+      Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 5 },
+        (location) => {
+          setRegion({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          });
+  
+          // Mise à jour de la caméra pour la vue "première personne"
+          if (mapRef.current) {
+            mapRef.current.animateCamera({
+              center: {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              },
+              pitch: 60, // Inclinaison pour effet 3D
+              heading: location.coords.heading, // Orientation de la carte
+              zoom: 18, // Zoom proche du sol
+            });
+          }
+        }
+      );
     })();
   }, []);
+  
 
   const fetchWeather = async (lat, lon) => {
     const now = Date.now();
@@ -168,6 +197,7 @@ const Home = () => {
       Alert.alert('Erreur', 'Erreur lors de la récupération de l\'itinéraire.');
       console.error(error);
     }
+    moveToFirstPerson();
   };
 
   const getAddressSuggestions = async (query) => {
@@ -213,6 +243,20 @@ const Home = () => {
     getRoute();
   };
 
+  const moveToFirstPerson = () => {
+    if (mapRef.current) {
+      mapRef.current.animateCamera({
+        center: {
+          latitude: region.latitude,
+          longitude: region.longitude,
+        },
+        pitch: 60, // Inclinaison de la caméra pour une vue en 3D
+        heading: 0, // Orientation (0 = vers le nord)
+        altitude: 500, // Distance par rapport au sol
+        zoom: 18, // Zoom proche du sol
+      }, { duration: 1000 });
+    }
+  };
   
   const decodePolyline = (encoded) => {
     let points = [];
@@ -248,14 +292,20 @@ const Home = () => {
   };
 
   
-
   return (
     <View style={styles.container}>
 
           {/* Affichage de la Map avec le tracé de l'itinéraire */}
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-              <MapView style={styles.map} initialRegion={region}>
+              <MapView 
+                  style={styles.map} 
+                  initialRegion={region}
+                  showsUserLocation
+                  followsUserLocation
+                  showsMyLocationButton
+                  ref={mapRef}
+                  >
                   <Marker coordinate={region} title="Votre position" >
                     <Icon name="motorbike" size={50} color="white" />
                   </Marker>
