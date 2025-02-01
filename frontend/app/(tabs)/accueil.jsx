@@ -8,6 +8,8 @@ import axios from 'axios';
 import { Image } from 'react-native';
 import debounce from "lodash.debounce";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Linking } from 'react-native';
+
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
@@ -18,6 +20,7 @@ const Home = () => {
   const [weather, setWeather] = useState(null); // Données météo
   const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
   const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
+  const [rainLayerUrl, setRainLayerUrl] = useState(null); // URL de la couche de pluie
 
 
   const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
@@ -82,6 +85,39 @@ const Home = () => {
       console.error("Erreur lors de la récupération de la météo", error);
     }
   };
+
+  //Version RainViewer
+  
+
+  const fetchRainViewerTiles = async () => {
+      try {
+          const response = await axios.get("https://api.rainviewer.com/public/weather-maps.json");
+          const radarData = response.data;
+
+          const lastRadarID = radarData.radar.past.slice(-1)[0].path;
+          const tileUrl = `https://tilecache.rainviewer.com${lastRadarID}/256/{z}/{x}/{y}/2/1_1.png`;
+
+          setRainLayerUrl(tileUrl);
+      } catch (error) {
+          console.error("Erreur lors du chargement des tuiles RainViewer", error);
+      }
+    };
+
+  useEffect(() => {
+      let interval;
+      if (showWeather) {
+          fetchWeather(region.latitude, region.longitude);
+          fetchRainViewerTiles();
+          interval = setInterval(() => {
+              fetchWeather(region.latitude, region.longitude);
+              fetchRainViewerTiles();
+          }, 10 * 60 * 1000);
+      }
+      return () => clearInterval(interval);
+  }, [showWeather, region]);
+
+  ///////////////////////////////////////////
+
 
   const getCoordinatesFromAddress = async (address) => {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json`;
@@ -221,30 +257,55 @@ const Home = () => {
                   <Marker coordinate={region} title="Votre position" />
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
-                    urlTemplate={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`}
-                    zIndex={2}
+                    urlTemplate={rainLayerUrl}
+                    zIndex={999} // Assure que la couche est bien visible
+                    opacity={0.6} // Réglage de la transparence (ajuste selon ton besoin)
                   />}
               </MapView>
             </View>
           )}
 
           {/* Bouton d'activation de la météo */}
-          <View style={{ position: 'absolute', top: 60, right: 20, zIndex: 10 }}>
-            <TouchableOpacity
-                onPress={() => {
-                  if (!showWeather) {
-                    fetchWeather(region.latitude, region.longitude);
+          <View style={{ position: 'absolute', top: 130, right: 10, zIndex: 10 }}>
+          <TouchableOpacity
+              onPress={() => {
+                  const newShowWeather = !showWeather;
+                  setShowWeather(newShowWeather);
+
+                  if (newShowWeather) {
+                      fetchWeather(region.latitude, region.longitude);
+                      fetchRainViewerTiles(); // Recharge la couche de pluie
+                  } else {
+                      setRainLayerUrl(null); // Désactive la couche de pluie
                   }
-                  setShowWeather(!showWeather); // Alterne entre afficher et masquer la météo
-                }}
-             >
+              }}
+          >
                 <Icon 
                   name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
-                  size={30} // Taille de l'icône
-                  color="black" // Couleur de l'icône, tu peux ajuster ça
+                  size={50} // Taille de l'icône
+                  color={showWeather ? 'black' : 'orange'} // Couleur de l'icône, tu peux ajuster ça
                 />
             </TouchableOpacity>
           </View>
+
+
+          {/* Icône Spotify */}
+          <View style={styles.spotifyIconContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                // Ouvre l'application Spotify si elle est installée
+                Linking.openURL('spotify://')
+                  .catch(() => {
+                    // Si l'application Spotify n'est pas installée, ouvre la page sur le store
+                    Linking.openURL('https://spotify.com')
+                      .catch((err) => console.error('Erreur lors de l\'ouverture de Spotify :', err));
+                  });
+              }}
+            >
+              <Icon name="spotify" size={50} color="dark" />
+            </TouchableOpacity>
+          </View>
+
           
           {/* Affichage de la météo */}
           {showWeather && weather && weather.weather && weather.weather[0].icon && (
@@ -343,13 +404,24 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
   map: { flex: 1 },
   
+
+  spotifyIconContainer: {
+    position: 'absolute',
+    top: 60, // Ajustez en fonction de la position de votre KPI météo
+    right:2, // Alignement à gauche
+    backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   
   //KPI météo dynamique
   weatherContainer: {
     position: 'absolute',
     top: 50, 
     left: 10,  // Positionnement en haut à gauche
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond semi-transparent
+    backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
     padding: 10,
     borderRadius: 10,
     flexDirection: 'row',  // Disposition horizontale (icône + texte)
