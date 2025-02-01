@@ -8,6 +8,8 @@ import axios from 'axios';
 import { Image } from 'react-native';
 import debounce from "lodash.debounce";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Linking } from 'react-native';
+
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
@@ -18,6 +20,7 @@ const Home = () => {
   const [weather, setWeather] = useState(null); // Données météo
   const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
   const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
+  const [rainLayerUrl, setRainLayerUrl] = useState(null); // URL de la couche de pluie
 
 
   const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
@@ -30,7 +33,7 @@ const Home = () => {
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.timing(panelHeight, {
-          toValue: gestureState.dy < 0 ? 350 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
+          toValue: gestureState.dy < 0 ? 450 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
           duration: 300,
           useNativeDriver: false,
         }).start();
@@ -82,6 +85,39 @@ const Home = () => {
       console.error("Erreur lors de la récupération de la météo", error);
     }
   };
+
+  //Version RainViewer
+  const fetchRainViewerTiles = async () => {
+      try {
+          const response = await axios.get("https://api.rainviewer.com/public/weather-maps.json");
+          const radarData = response.data;
+
+          const lastRadarID = radarData.radar.past.slice(-1)[0].path;
+          const tileUrl = `https://tilecache.rainviewer.com${lastRadarID}/256/{z}/{x}/{y}/2/1_1.png`;
+
+          setRainLayerUrl(tileUrl);
+      } catch (error) {
+          console.error("Erreur lors du chargement des tuiles RainViewer", error);
+      }
+    };
+
+    useEffect(() => {
+      if (region) {  // Vérification si region est défini avant d'utiliser
+        let interval;
+        if (showWeather) {
+          fetchWeather(region.latitude, region.longitude);
+          fetchRainViewerTiles();
+          interval = setInterval(() => {
+            fetchWeather(region.latitude, region.longitude);
+            fetchRainViewerTiles();
+          }, 10 * 60 * 1000);
+        }
+        return () => clearInterval(interval);
+      }
+    }, [showWeather, region]);
+
+  ///////////////////////////////////////////
+
 
   const getCoordinatesFromAddress = async (address) => {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json`;
@@ -211,6 +247,8 @@ const Home = () => {
     return points;
   };
 
+  
+
   return (
     <View style={styles.container}>
 
@@ -218,33 +256,60 @@ const Home = () => {
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView style={styles.map} initialRegion={region}>
-                  <Marker coordinate={region} title="Votre position" />
+                  <Marker coordinate={region} title="Votre position" >
+                    <Icon name="motorbike" size={50} color="white" />
+                  </Marker>
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
-                    urlTemplate={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`}
-                    zIndex={2}
+                    urlTemplate={rainLayerUrl}
+                    zIndex={999} // Assure que la couche est bien visible
+                    opacity={0.6} // Réglage de la transparence (ajuste selon ton besoin)
                   />}
               </MapView>
             </View>
           )}
 
           {/* Bouton d'activation de la météo */}
-          <View style={{ position: 'absolute', top: 60, right: 20, zIndex: 10 }}>
-            <TouchableOpacity
-                onPress={() => {
-                  if (!showWeather) {
-                    fetchWeather(region.latitude, region.longitude);
+          <View style={{ position: 'absolute', top: 130, right: 10, zIndex: 10 }}>
+          <TouchableOpacity
+              onPress={() => {
+                  const newShowWeather = !showWeather;
+                  setShowWeather(newShowWeather);
+
+                  if (newShowWeather) {
+                      fetchWeather(region.latitude, region.longitude);
+                      fetchRainViewerTiles(); // Recharge la couche de pluie
+                  } else {
+                      setRainLayerUrl(null); // Désactive la couche de pluie
                   }
-                  setShowWeather(!showWeather); // Alterne entre afficher et masquer la météo
-                }}
-             >
+              }}
+          >
                 <Icon 
                   name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
-                  size={30} // Taille de l'icône
-                  color="black" // Couleur de l'icône, tu peux ajuster ça
+                  size={50} // Taille de l'icône
+                  color={showWeather ? 'black' : 'orange'} // Couleur de l'icône, tu peux ajuster ça
                 />
             </TouchableOpacity>
           </View>
+
+
+          {/* Icône Spotify */}
+          <View style={styles.spotifyIconContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                // Ouvre l'application Spotify si elle est installée
+                Linking.openURL('spotify://')
+                  .catch(() => {
+                    // Si l'application Spotify n'est pas installée, ouvre la page sur le store
+                    Linking.openURL('https://spotify.com')
+                      .catch((err) => console.error('Erreur lors de l\'ouverture de Spotify :', err));
+                  });
+              }}
+            >
+              <Icon name="spotify" size={50} color="dark" />
+            </TouchableOpacity>
+          </View>
+
           
           {/* Affichage de la météo */}
           {showWeather && weather && weather.weather && weather.weather[0].icon && (
@@ -276,57 +341,69 @@ const Home = () => {
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
             }}
-            {...panResponder.panHandlers}
+            
           >
-            <View style={{ height: 20, alignItems: 'center' }}>
+            <View style={{ height: 20, alignItems: 'center' }}
+            {...panResponder.panHandlers}>
               <View style={{ width: 50, height: 5, backgroundColor: 'gray', borderRadius: 5, marginBottom: 10 }} />
             </View>
 
-            <View style={{ padding: 10 }}>
+            <View style={styles.searchBarContainer}>
+              {/* Icône à gauche */}
+              <Icon name="map-search" size={20} color="#888" style={styles.icon} />
+              
+              {/* Champ de texte pour la destination */}
               <TextInput
-                style={{
-                  height: 40,
-                  borderColor: 'gray',
-                  borderWidth: 1,
-                  paddingHorizontal: 10,
-                  borderRadius: 5,
-                  marginBottom: 10,
-                }}
+                style={styles.searchInput}
                 placeholder="Entrez votre destination"
+                placeholderTextColor="gray"  // Ajoute cette ligne pour colorer le texte du placeholder en noir
                 value={destination}
                 onChangeText={handleAddressChange}
               />
+            </View>
 
-              {/* Liste des suggestions */}
-              <FlatList
-                data={suggestions}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
+
+            {/* Liste défilante des suggestions */}
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => {
+                // Séparation de l'adresse par virgule
+                const addressParts = item.label.split(',');
+
+                // Récupération du numéro et de la rue
+                const streetNumberAndName = addressParts[0]?.trim();
+                const street = streetNumberAndName ? streetNumberAndName.replace(/^\d+\s/, '') : '';  // Enlève le numéro si présent
+
+                // Récupération de la ville
+                const city = addressParts[2]?.trim();
+
+                // Récupération du département
+                const department = addressParts[4]?.trim(); // Le département semble être à l'index 4 dans cet exemple
+
+                return (
                   <TouchableOpacity
                     style={{
                       padding: 10,
-                      borderBottomWidth: 1,
-                      backgroundColor: "#fff",
+                      backgroundColor: "#f0f0f0", // Utilisation du même fond que le panneau
                     }}
                     onPress={() => handleSelectAddress(item)}
                   >
-                    <Text>{item.label}</Text>
+                    <Text style={styles.suggestionText}>
+                        {street}, {city}, {department}
+                    </Text>
                   </TouchableOpacity>
-                )}
-                style={{
-                  maxHeight: 150,
-                  backgroundColor: "white",
-                  borderColor: "gray",
-                  borderWidth: 1,
-                  position: "absolute",
-                  top: 50,
-                  left: 10,
-                  right: 10,
-                  zIndex: 1000, // Assure que la liste est au-dessus des autres éléments
-                }}
-              />
+                );
+              }}
+              style={{
+                marginTop: 20, 
+                width: '100%',  
+              }}
+              ItemSeparatorComponent={() => (
+                <View style={{ height: 1, backgroundColor: '#ddd', marginHorizontal: 10 }} />
+              )}
+            />
 
-            </View>
           </Animated.View>
         </View>
     
@@ -342,14 +419,28 @@ const styles = StyleSheet.create({
   input: { width: '90%', height: 40, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 8, borderRadius: 5, marginBottom: 10 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
   map: { flex: 1 },
+  icon: {
+    marginRight: 10, // Espace entre l'icône et le champ de texte
+  },
   
-  
+  //Icone spotify
+  spotifyIconContainer: {
+    position: 'absolute',
+    top: 60, // Ajustez en fonction de la position de votre KPI météo
+    right:2, // Alignement à gauche
+    backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   //KPI météo dynamique
   weatherContainer: {
     position: 'absolute',
     top: 50, 
     left: 10,  // Positionnement en haut à gauche
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond semi-transparent
+    backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
     padding: 10,
     borderRadius: 10,
     flexDirection: 'row',  // Disposition horizontale (icône + texte)
@@ -374,5 +465,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ccc', // Couleur plus claire pour la description
   },
+
+  // Barre de recherche et bouton Y Aller
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,  // Pour l'effet de l'ombre sur Android
+    marginTop: 20,
+    marginBottom: 20,
+    width: '100%',
+  },
+  searchInput: {
+    flex: 1,
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    paddingLeft: 10,
+    fontSize: 16,
+    
+  },
+
+  // Liste des suggestions
+  suggestionList: {
+    width : '100%',
+    position: 'absolute',
+    top: 100,
+    left: 15,
+    right: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    maxHeight: 150,
+    marginTop: 5,
+    zIndex: 1000,
+  },
+  suggestionItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  suggestionText: {
+    fontSize: 16,  
+    color: "#333",  
+    fontWeight: '600',  
+    lineHeight: 24,  
+  }
+
   
 });
