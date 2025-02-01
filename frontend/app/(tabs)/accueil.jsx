@@ -33,7 +33,7 @@ const Home = () => {
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.timing(panelHeight, {
-          toValue: gestureState.dy < 0 ? 350 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
+          toValue: gestureState.dy < 0 ? 450 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
           duration: 300,
           useNativeDriver: false,
         }).start();
@@ -247,6 +247,8 @@ const Home = () => {
     return points;
   };
 
+  
+
   return (
     <View style={styles.container}>
 
@@ -339,57 +341,69 @@ const Home = () => {
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
             }}
-            {...panResponder.panHandlers}
+            
           >
-            <View style={{ height: 20, alignItems: 'center' }}>
+            <View style={{ height: 20, alignItems: 'center' }}
+            {...panResponder.panHandlers}>
               <View style={{ width: 50, height: 5, backgroundColor: 'gray', borderRadius: 5, marginBottom: 10 }} />
             </View>
 
-            <View style={{ padding: 10 }}>
+            <View style={styles.searchBarContainer}>
+              {/* Icône à gauche */}
+              <Icon name="map-search" size={20} color="#888" style={styles.icon} />
+              
+              {/* Champ de texte pour la destination */}
               <TextInput
-                style={{
-                  height: 40,
-                  borderColor: 'gray',
-                  borderWidth: 1,
-                  paddingHorizontal: 10,
-                  borderRadius: 5,
-                  marginBottom: 10,
-                }}
+                style={styles.searchInput}
                 placeholder="Entrez votre destination"
+                placeholderTextColor="gray"  // Ajoute cette ligne pour colorer le texte du placeholder en noir
                 value={destination}
                 onChangeText={handleAddressChange}
               />
+            </View>
 
-              {/* Liste des suggestions */}
-              <FlatList
-                data={suggestions}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
+
+            {/* Liste défilante des suggestions */}
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => {
+                // Séparation de l'adresse par virgule
+                const addressParts = item.label.split(',');
+
+                // Récupération du numéro et de la rue
+                const streetNumberAndName = addressParts[0]?.trim();
+                const street = streetNumberAndName ? streetNumberAndName.replace(/^\d+\s/, '') : '';  // Enlève le numéro si présent
+
+                // Récupération de la ville
+                const city = addressParts[2]?.trim();
+
+                // Récupération du département
+                const department = addressParts[4]?.trim(); // Le département semble être à l'index 4 dans cet exemple
+
+                return (
                   <TouchableOpacity
                     style={{
                       padding: 10,
-                      borderBottomWidth: 1,
-                      backgroundColor: "#fff",
+                      backgroundColor: "#f0f0f0", // Utilisation du même fond que le panneau
                     }}
                     onPress={() => handleSelectAddress(item)}
                   >
-                    <Text>{item.label}</Text>
+                    <Text style={styles.suggestionText}>
+                        {street}, {city}, {department}
+                    </Text>
                   </TouchableOpacity>
-                )}
-                style={{
-                  maxHeight: 150,
-                  backgroundColor: "white",
-                  borderColor: "gray",
-                  borderWidth: 1,
-                  position: "absolute",
-                  top: 50,
-                  left: 10,
-                  right: 10,
-                  zIndex: 1000, // Assure que la liste est au-dessus des autres éléments
-                }}
-              />
+                );
+              }}
+              style={{
+                marginTop: 20, 
+                width: '100%',  
+              }}
+              ItemSeparatorComponent={() => (
+                <View style={{ height: 1, backgroundColor: '#ddd', marginHorizontal: 10 }} />
+              )}
+            />
 
-            </View>
           </Animated.View>
         </View>
     
@@ -405,8 +419,11 @@ const styles = StyleSheet.create({
   input: { width: '90%', height: 40, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 8, borderRadius: 5, marginBottom: 10 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
   map: { flex: 1 },
+  icon: {
+    marginRight: 10, // Espace entre l'icône et le champ de texte
+  },
   
-
+  //Icone spotify
   spotifyIconContainer: {
     position: 'absolute',
     top: 60, // Ajustez en fonction de la position de votre KPI météo
@@ -417,7 +434,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   //KPI météo dynamique
   weatherContainer: {
     position: 'absolute',
@@ -448,5 +465,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ccc', // Couleur plus claire pour la description
   },
+
+  // Barre de recherche et bouton Y Aller
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,  // Pour l'effet de l'ombre sur Android
+    marginTop: 20,
+    marginBottom: 20,
+    width: '100%',
+  },
+  searchInput: {
+    flex: 1,
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    paddingLeft: 10,
+    fontSize: 16,
+    
+  },
+
+  // Liste des suggestions
+  suggestionList: {
+    width : '100%',
+    position: 'absolute',
+    top: 100,
+    left: 15,
+    right: 15,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    maxHeight: 150,
+    marginTop: 5,
+    zIndex: 1000,
+  },
+  suggestionItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  suggestionText: {
+    fontSize: 16,  
+    color: "#333",  
+    fontWeight: '600',  
+    lineHeight: 24,  
+  }
+
   
 });
