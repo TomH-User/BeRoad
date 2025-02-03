@@ -10,6 +10,7 @@ import debounce from "lodash.debounce";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Linking } from 'react-native';
 import { DeviceMotion } from 'expo-sensors';
+import { ActivityIndicator } from 'react-native';
 
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
@@ -28,6 +29,8 @@ const Ride = () => {
   const mapRef = useRef(null);
 
   const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
+
+  const [loading, setLoading] = useState(false);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -177,6 +180,8 @@ const Ride = () => {
       return;
     }
 
+    setLoading(true); // Démarre le chargement
+
     const destinationCoords = await getCoordinatesFromAddress(destination);
     if (!destinationCoords) return;
 
@@ -189,17 +194,28 @@ const Ride = () => {
       const geometry = response.data.routes[0]?.geometry;
       if (!geometry) {
         Alert.alert('Erreur', 'Aucun itinéraire trouvé.');
+        setLoading(false); // Fin du chargement en cas d'erreur
         return;
       }
 
       const coordinates = decodePolyline(geometry);
       setRoute(coordinates);
 
+      // Zoom sur l'itinéraire tracé
+      if (mapRef.current && coordinates.length > 0) {
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 50, right: 20, bottom: 100, left: 20}, // Ajustez les marges autour de l'itinéraire
+          animated: true,  // Animation pour le zoom
+        });
+      }
+
     } catch (error) {
       Alert.alert('Erreur', 'Erreur lors de la récupération de l\'itinéraire.');
       console.error(error);
+    } finally {
+      setLoading(false); // Fin du chargement
     }
-    moveToFirstPerson();
+    
   };
 
   const getAddressSuggestions = async (query) => {
@@ -242,6 +258,15 @@ const Ride = () => {
   const handleSelectAddress = (selected) => {
     setDestination(selected.label);
     setSuggestions([]); // Cache les suggestions après sélection
+    
+
+    // Animation de rétraction du panneau
+    Animated.timing(panelHeight, {
+      toValue: 50, // Valeur de la hauteur réduite
+      duration: 300, // Durée de l'animation (en ms)
+      useNativeDriver: false, // Nous n'utilisons pas de transformation native pour la hauteur
+    }).start();
+
     getRoute();
   };
 
@@ -302,15 +327,15 @@ const Ride = () => {
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView 
                   style={StyleSheet.absoluteFill}
-                  provider={PROVIDER_GOOGLE} 
+                  //provider={PROVIDER_GOOGLE} 
                   initialRegion={region}
                   showsUserLocation
-                  followsUserLocation
+                  //followsUserLocation
                   showsMyLocationButton
                   ref={mapRef}
                   >
                   <Marker coordinate={region} title="Votre position" >
-                    <Icon name="motorbike" size={50} color="white" />
+                    {/* <Icon name="motorbike" size={50} color="white" /> */}
                   </Marker>
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
@@ -319,6 +344,13 @@ const Ride = () => {
                     opacity={0.6} // Réglage de la transparence
                   />}
               </MapView>
+            </View>
+          )}
+
+          {/* Affichage du chargement pendant la récupération de la route */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0000ff" />
             </View>
           )}
 
@@ -382,7 +414,7 @@ const Ride = () => {
                 </View>
               </View>
             </View>
-          )}
+          )}       
 
         {/* Barre de recherche dépliable/repliable */}
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
@@ -570,7 +602,16 @@ const styles = StyleSheet.create({
     color: "#333",  
     fontWeight: '600',  
     lineHeight: 24,  
-  }
+  },
 
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   
 });
