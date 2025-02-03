@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, View, StatusBar, TextInput, TouchableOpacity, Text, Alert, Animated, PanResponder, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Polyline, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -18,12 +18,14 @@ const Home = () => {
   const [region, setRegion] = useState(null); // Coordonnées de la position actuelle
   const [destination, setDestination] = useState(''); // Adresse de destination
   const [route, setRoute] = useState(null);  // Coordonnées de l'itinéraire
+
   const [weather, setWeather] = useState(null); // Données météo
   const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
-  const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
   const [rainLayerUrl, setRainLayerUrl] = useState(null); // URL de la couche de pluie
-  const mapRef = useRef(null);
 
+  const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
+
+  const mapRef = useRef(null);
 
   const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
 
@@ -299,7 +301,8 @@ const Home = () => {
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView 
-                  style={styles.map} 
+                  style={styles.map}
+                  provider={PROVIDER_GOOGLE} 
                   initialRegion={region}
                   showsUserLocation
                   followsUserLocation
