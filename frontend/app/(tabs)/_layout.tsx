@@ -42,15 +42,15 @@ const TabsLayout = () => {
         }}
       >
         <Tabs.Screen 
-          name="accueil"
+          name="ride"
           options={{
-            title: 'Accueil',
+            title: 'Ride',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.home}
                 color={color}
-                name="Accueil"
+                name="Ride"
                 focused={focused}
               />
             )
@@ -58,15 +58,15 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen 
-          name="meteo"
+          name="discussions"
           options={{
-            title: 'Metéo',
+            title: 'Discussions',
             headerShown: false,
             tabBarIcon: ({ color, focused}) => (
               <TabIcon 
                 icon={icons.bookmark}
                 color={color}
-                name="Meteo"
+                name="Discussions"
                 focused={focused}
               />
             )

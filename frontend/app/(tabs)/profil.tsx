@@ -3,6 +3,7 @@ import { Text, View, Image, Button, ScrollView, StyleSheet, Switch, TextInput } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import { signOut } from '@/lib/appwrite';
+import { router } from 'expo-router';
 
 const Profile: React.FC = () => {
   const { user, setUser, setIsLogged } = useGlobalContext();
@@ -22,6 +23,7 @@ const Profile: React.FC = () => {
     await signOut();
     setUser(null);
     setIsLogged(false);
+    router.push('/sign-in');
   };
 
   const handleDataChanged = useCallback(() => {

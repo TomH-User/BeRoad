@@ -14,7 +14,7 @@ import { DeviceMotion } from 'expo-sensors';
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
 
-const Home = () => {
+const Ride = () => {
   const [region, setRegion] = useState(null); // Coordonnées de la position actuelle
   const [destination, setDestination] = useState(''); // Adresse de destination
   const [route, setRoute] = useState(null);  // Coordonnées de l'itinéraire
@@ -37,7 +37,7 @@ const Home = () => {
       },
       onPanResponderRelease: (_, gestureState) => {
         Animated.timing(panelHeight, {
-          toValue: gestureState.dy < 0 ? 450 : 30, // Si glisse vers le haut -> 300px, sinon -> 50px
+          toValue: gestureState.dy < 0 ? 450 : 100, // Si glisse vers le haut -> 450px, sinon -> 50px
           duration: 300,
           useNativeDriver: false,
         }).start();
@@ -301,7 +301,7 @@ const Home = () => {
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
               <MapView 
-                  style={styles.map}
+                  style={StyleSheet.absoluteFill}
                   provider={PROVIDER_GOOGLE} 
                   initialRegion={region}
                   showsUserLocation
@@ -316,7 +316,7 @@ const Home = () => {
                   {showWeather && <UrlTile
                     urlTemplate={rainLayerUrl}
                     zIndex={999} // Assure que la couche est bien visible
-                    opacity={0.6} // Réglage de la transparence (ajuste selon ton besoin)
+                    opacity={0.6} // Réglage de la transparence
                   />}
               </MapView>
             </View>
@@ -340,7 +340,7 @@ const Home = () => {
                 <Icon 
                   name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
                   size={50} // Taille de l'icône
-                  color={showWeather ? 'black' : 'orange'} // Couleur de l'icône, tu peux ajuster ça
+                  color={showWeather ? 'black' : 'orange'} // Couleur de l'icône
                 />
             </TouchableOpacity>
           </View>
@@ -409,7 +409,7 @@ const Home = () => {
               <TextInput
                 style={styles.searchInput}
                 placeholder="Entrez votre destination"
-                placeholderTextColor="gray"  // Ajoute cette ligne pour colorer le texte du placeholder en noir
+                placeholderTextColor="gray"  //  olorer le texte du placeholder en noir
                 value={destination}
                 onChangeText={handleAddressChange}
               />
@@ -432,7 +432,7 @@ const Home = () => {
                 const city = addressParts[2]?.trim();
 
                 // Récupération du département
-                const department = addressParts[4]?.trim(); // Le département semble être à l'index 4 dans cet exemple
+                const department = addressParts[4]?.trim(); // Le département semble être à l'index 4
 
                 return (
                   <TouchableOpacity
@@ -464,14 +464,13 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Ride;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   topBar: { flexDirection: 'column', alignItems: 'center', padding: 10, backgroundColor: '#fff' },
   input: { width: '90%', height: 40, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 8, borderRadius: 5, marginBottom: 10 },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
-  map: { flex: 1 },
   icon: {
     marginRight: 10, // Espace entre l'icône et le champ de texte
   },
@@ -479,7 +478,7 @@ const styles = StyleSheet.create({
   //Icone spotify
   spotifyIconContainer: {
     position: 'absolute',
-    top: 60, // Ajustez en fonction de la position de votre KPI météo
+    top: 60,
     right:2, // Alignement à gauche
     backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
     padding: 10,

@@ -12,7 +12,7 @@ export default function App() {
   const {isLoading, isLoggedIn} = useGlobalContext();
 
   if (!isLoading && isLoggedIn) 
-    return <Redirect href="/accueil"/>;
+    return <Redirect href="/ride"/>;
 
 
   return (

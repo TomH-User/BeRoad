@@ -36,7 +36,7 @@ const SignIn = () => {
       setUser(result);
       setIsLogged(true);
       
-      router.replace("/accueil");  
+      router.replace("/ride");  
     } catch (error) {
       Alert.alert('Error', (error as Error).message)
     } finally {
@@ -48,11 +48,11 @@ const SignIn = () => {
     <SafeAreaView className="bg-primary h-full">
       <ScrollView>
         <View className='w-full justify-center h-full px-4 my-6 mt-8'>
-        <Image
-            source={images.logo}
-            style = {{width: 100, height: 100}}
-            resizeMode="contain"
-          />
+          <Image
+              source={images.logo}
+              style = {{width: 100, height: 100}}
+              resizeMode="contain"
+            />
 
           <Text 
             className='text-2xl text-gray-100 text-semibold font-psemibold'>

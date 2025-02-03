@@ -35,7 +35,7 @@ const SignUp = () => {
     socialLink: "",
     conduiteType: [],
     motoType: [],
-    experiencesCommunity: []
+    experiencesCommunity: [],
   });
 
   const [isSubmitting, setSubmitting] = useState(false);
@@ -62,7 +62,7 @@ const SignUp = () => {
       const result = await createUser(form.email, form.password, form.username);
       setUser(result);
       setIsLogged(true);
-      router.replace("/accueil");
+      router.replace("/ride");
     } catch (error) {
       Alert.alert("Erreur", (error as Error).message);
     } finally {
@@ -131,39 +131,66 @@ const SignUp = () => {
           <FormField
             title="Lien vers réseau social"
             value={form.socialLink}
-            handleChangeText={(e: string) => setForm({ ...form, socialLink: e })}
+            handleChangeText={(e: string) =>
+              setForm({ ...form, socialLink: e })
+            }
             otherStyles="mt-7"
             keyboardType="url"
           />
 
           <Text className="text-lg text-gray-100 mt-7">Type de conduite:</Text>
-          {['Balades tranquilles', 'Road trips longue distance', 'Conduite sportive', 'Off-road / Tout-terrain', 'Moto urbaine'].map((type) => (
+          {[
+            "Balades tranquilles",
+            "Road trips longue distance",
+            "Conduite sportive",
+            "Off-road / Tout-terrain",
+            "Moto urbaine",
+          ].map((type) => (
             <View key={type} className="flex-row items-center">
               <Switch
                 value={form.conduiteType.includes(type)}
-                onValueChange={() => toggleOption('conduiteType', type)}
+                onValueChange={() => toggleOption("conduiteType", type)}
               />
               <Text className="text-lg text-gray-100">{type}</Text>
             </View>
           ))}
 
-          <Text className="text-lg text-gray-100 mt-7">Type de moto préférée:</Text>
-          {['Roadster', 'Sportive', 'Custom / Cruiser', 'Trail / Adventure', 'Touring', 'Café racer / Vintage'].map((type) => (
+          <Text className="text-lg text-gray-100 mt-7">
+            Type de moto préférée:
+          </Text>
+          {[
+            "Roadster",
+            "Sportive",
+            "Custom / Cruiser",
+            "Trail / Adventure",
+            "Touring",
+            "Café racer / Vintage",
+          ].map((type) => (
             <View key={type} className="flex-row items-center">
               <Switch
                 value={form.motoType.includes(type)}
-                onValueChange={() => toggleOption('motoType', type)}
+                onValueChange={() => toggleOption("motoType", type)}
               />
               <Text className="text-lg text-gray-100">{type}</Text>
             </View>
           ))}
 
-          <Text className="text-lg text-gray-100 mt-7">Expériences et communauté:</Text>
-          {['Rencontrer d\'autres motards', 'Participer à des événements moto', 'Découvrir de nouveaux itinéraires', 'Voyager à l’étranger en moto', 'Conduite en groupe'].map((experience) => (
+          <Text className="text-lg text-gray-100 mt-7">
+            Expériences et communauté:
+          </Text>
+          {[
+            "Rencontrer d'autres motards",
+            "Participer à des événements moto",
+            "Découvrir de nouveaux itinéraires",
+            "Voyager à l’étranger en moto",
+            "Conduite en groupe",
+          ].map((experience) => (
             <View key={experience} className="flex-row items-center">
               <Switch
                 value={form.experiencesCommunity.includes(experience)}
-                onValueChange={() => toggleOption('experiencesCommunity', experience)}
+                onValueChange={() =>
+                  toggleOption("experiencesCommunity", experience)
+                }
               />
               <Text className="text-lg text-gray-100">{experience}</Text>
             </View>
