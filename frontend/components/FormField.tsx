@@ -30,9 +30,9 @@ const FormField: React.FC<FormProps> = ({title, value, placeholder, handleChange
                 placeholder={placeholder}
                 placeholderTextColor="#7b7b8b"
                 onChangeText={handleChangeText}
-                secureTextEntry= {title === 'Password' && !showPassword}
+                secureTextEntry= {title === 'Mot de passe' && !showPassword}
             />
-            {title === 'Password' && (
+            {title === 'Mot de passe' && (
                 <TouchableOpacity onPress={() => setshowPassword(!showPassword)}>
                     <Image source = {!showPassword ? icons.eye : icons.eyeHide} 
                         className='w-6 h-6' resizeMode='contain'/>
