@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Text, View, StyleSheet } from 'react-native';
+import { Button, Text, View, StyleSheet, ActivityIndicator} from 'react-native';
 import { sendFriendRequest, checkFriendStatus, getCurrentUser } from '../lib/appwrite'; // Import de la fonction Appwrite
-
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default ContactRow = ({ contact }) => {
   const [userId, setUserId] = useState(null);
@@ -9,7 +9,7 @@ export default ContactRow = ({ contact }) => {
 
   const fetchCurrentUser = async () => {
     const user = await getCurrentUser();
-    setUserId(user.$id);
+    setUserId(user.accountId);
   };
 
   useEffect(() => {
@@ -50,11 +50,18 @@ export default ContactRow = ({ contact }) => {
     }
   };
 
+
   return (
     <View style={styles.row}>
-      <Text>{contact.firstName} {contact.lastName}</Text>
-      {friendStatus === 'accepted' ? (
-        <Text>Amis</Text>
+      <Text style={styles.text}>{contact.firstName} {contact.lastName}</Text>
+      
+      {friendStatus === "accepted" ? (
+        <Ionicons name="checkmark-circle" size={24} color="green" />
+      ) : friendStatus === "pending" ? (
+        <View style={styles.pendingContainer}>
+          <Ionicons name="time-outline" size={24} color="orange" />
+          <Text style={styles.pendingText}>En attente...</Text>
+        </View>
       ) : (
         <Button title="Ajouter ami" onPress={handleAddFriend} />
       )}
@@ -64,8 +71,24 @@ export default ContactRow = ({ contact }) => {
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: 300,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  text: {
+    fontSize: 16,
+  },
+  pendingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  pendingText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: "orange",
   },
 });

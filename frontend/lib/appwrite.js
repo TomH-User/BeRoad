@@ -267,7 +267,8 @@ export async function rejectFriendRequest(requestId) {
 
 export async function getPendingFriendRequests(userId) {
     try {
-      const response = await databases.listDocuments(
+        console.log("userId get pending :", userId);
+        const response = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.friendsCollectionId,
         [Query.equal("friendId", userId), Query.equal("status", "pending")]
@@ -279,6 +280,35 @@ export async function getPendingFriendRequests(userId) {
       return [];
     }
   }
+
+  export async function getUserDetails(userId) {
+    try {
+        console.log("Fetching details for user:", userId);
+        const response = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            [Query.equal("accountId", userId)]
+        );
+
+        // Vérifie si le tableau de documents n'est pas vide
+        if (response.documents && response.documents.length > 0) {
+            const user = response.documents[0];
+            return {
+                username: user.username || "Inconnu",
+                telephone: user.telephone || "N/A"
+            };
+        } else {
+            // Si aucun utilisateur n'est trouvé
+            console.error("Aucun utilisateur trouvé avec l'accountId:", userId);
+            return { username: "Inconnu", telephone: "N/A" };
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération des détails de l'utilisateur :", error.message);
+        return { username: "Inconnu", telephone: "N/A" };
+    }
+}
+
+
 
 export async function updateUser(updatedData) {
     try {
