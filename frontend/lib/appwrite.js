@@ -168,6 +168,27 @@ export async function findRegisteredContacts(contacts) {
     }
 }
 
+export async function checkFriendStatus(userId, friendId) {
+    try {
+        const friendStatus = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('friendId', friendId)
+            ]
+        );
+
+        if (friendStatus.documents.length > 0) {
+            return friendStatus.documents[0].status; // "pending" ou "accepted"
+        }
+
+        return null; // Pas encore amis
+    } catch (error) {
+        console.log(error.message);
+        return null;
+    }
+}
 
 export async function getFriends(userId) {
     try {
@@ -232,27 +253,32 @@ export async function acceptFriendRequest(requestId) {
     }
 }
 
-export async function checkFriendStatus(userId, friendId) {
+export async function rejectFriendRequest(requestId) {
     try {
-        const friendStatus = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.friendsCollectionId,
-            [
-                Query.equal('userId', userId),
-                Query.equal('friendId', friendId)
-            ]
+        await databases.deleteDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.friendsCollectionId,
+        requestId
         );
-
-        if (friendStatus.documents.length > 0) {
-            return friendStatus.documents[0].status; // "pending" ou "accepted"
-        }
-
-        return null; // Pas encore amis
     } catch (error) {
-        console.log(error.message);
-        return null;
+        console.error("Erreur lors du refus de la demande :", error.message);
     }
-}
+} 
+
+export async function getPendingFriendRequests(userId) {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.friendsCollectionId,
+        [Query.equal("friendId", userId), Query.equal("status", "pending")]
+      );
+  
+      return response.documents;
+    } catch (error) {
+      console.error("Erreur lors de la récupération des demandes d'amis :", error.message);
+      return [];
+    }
+  }
 
 export async function updateUser(updatedData) {
     try {
@@ -286,3 +312,5 @@ export async function updateUser(updatedData) {
       throw new Error(error);
     }
 }
+
+

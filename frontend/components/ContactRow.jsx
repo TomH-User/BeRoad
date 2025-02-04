@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Text, View, StyleSheet } from 'react-native';
-import { sendFriendRequest, checkFriendStatus, getCurrentUser } from '../../lib/appwrite'; // Import de la fonction Appwrite
+import { sendFriendRequest, checkFriendStatus, getCurrentUser } from '../lib/appwrite'; // Import de la fonction Appwrite
 
 
 export default ContactRow = ({ contact }) => {

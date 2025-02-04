@@ -3,13 +3,17 @@ import * as Contacts from "expo-contacts";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {Button, FlatList, SafeAreaView, StyleSheet, Text, TextInput, View} from "react-native";
-import ContactRow from "../crewUtils/ContactRow";
+import ContactRow from "../../components/ContactRow";
 import { findRegisteredContacts } from "../../lib/appwrite";
+import { useNavigation } from "@react-navigation/native";
+import { Link, router } from 'expo-router'
+
 
 const Crew = () => {
   const [contacts, setContacts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState();
+  const navigation = useNavigation();
 
   useEffect(() => {
     const getPermission = async () => {
@@ -44,10 +48,11 @@ const searchContacts = async () => {
     setIsLoading(false);
 };
 
-
-
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.section}>
+        <Button title="Voir les demandes d'amis" onPress={() => router.push("/friend-requests")} />
+      </View>
       <View style={styles.row}>
         <TextInput
           placeholder="Rerchercher un contact"
