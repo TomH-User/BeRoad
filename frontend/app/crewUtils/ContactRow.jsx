@@ -55,7 +55,7 @@ export default ContactRow = ({ contact }) => {
       {friendStatus === 'accepted' ? (
         <Text>Amis</Text>
       ) : (
-        <Button title="Add Friend" onPress={handleAddFriend} />
+        <Button title="Ajouter ami" onPress={handleAddFriend} />
       )}
     </View>
   );
