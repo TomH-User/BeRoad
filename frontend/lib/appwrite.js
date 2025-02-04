@@ -7,11 +7,11 @@ export const appwriteConfig = {
     databaseId: '678fd6c20031177026ac',
     userCollectionId: '678fd708003b945be970',
     routeCollectionId: '678fd7d4002ec0fe1566',
-    checkpointCollectionId: '678fd817002aa45cd980',
     reviewCollectionId: '678fdb6e000540d0013a',
     crewCollectionId: '678fdf0a00399d03b91c',
     discussionCollectionId: '678fe04c00080f36eda5',
-    messageCollectionId: '678fe10d001c61a2b195'
+    messageCollectionId: '678fe10d001c61a2b195',
+    friendsCollectionId: '67a1421c001d225e13f7'
 };
 
 const client = new Client();
@@ -108,3 +108,13 @@ export async function signOut() {
         throw new Error(error.message);
     }
 }
+
+export async function findRegisteredContacts(phoneNumbers) {
+    const response = await databases.listDocuments(
+      "database_id",
+      "userCollectionId",
+      [Query.contains("phone", phoneNumbers)]
+    );
+  
+    return response.documents; // Liste des utilisateurs trouvés
+  }
