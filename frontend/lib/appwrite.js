@@ -235,3 +235,36 @@ export async function checkFriendStatus(userId, friendId) {
         return null;
     }
 }
+
+export async function updateUser(updatedData) {
+    try {
+      const currentAccount = await account.get();
+      if (!currentAccount) throw Error;
+  
+      // Fetch the current user's document ID
+      const currentUser = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        [Query.equal('accountId', currentAccount.$id)]
+      );
+  
+      if (currentUser.documents.length === 0) {
+        throw new Error('User document not found.');
+      }
+  
+      const userId = currentUser.documents[0].$id;
+  
+      // Update user document with new data
+      const updatedUser = await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        userId,
+        updatedData
+      );
+  
+      return updatedUser;
+    } catch (error) {
+      console.log(error.message);
+      throw new Error(error);
+    }
+  }

@@ -19,7 +19,7 @@ const Profile: React.FC = () => {
   };
 
   const navigateToEditProfile = () => {
-    router.push('/edit_profil');
+    router.push('../profilUtils/edit_profil');
   };
 
   return (
