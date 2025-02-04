@@ -19,35 +19,35 @@ const Ride = () => {
   const [region, setRegion] = useState(null); // Coordonnées de la position actuelle
   const [destination, setDestination] = useState(''); // Adresse de destination
   const [route, setRoute] = useState(null);  // Coordonnées de l'itinéraire
-
+  const [heading, setHeading] = useState(0);
   const [weather, setWeather] = useState(null); // Données météo
   const [showWeather, setShowWeather] = useState(true); // Affichage de la météo
   const [rainLayerUrl, setRainLayerUrl] = useState(null); // URL de la couche de pluie
-
   const [suggestions, setSuggestions] = useState([]); // Suggestions d'adresses
-
   const mapRef = useRef(null);
-
-  const panelHeight = useRef(new Animated.Value(50)).current; // Hauteur initiale réduite du panneau
-
+  const panelHeight = useRef(new Animated.Value(35)).current; // Hauteur initiale réduite du panneau
   const [loading, setLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10, // Activer si l'utilisateur glisse verticalement
-      onPanResponderMove: (_, gestureState) => {
-        panelHeight.setValue(Math.max(50, Math.min(300, 200 - gestureState.dy))); // Limite entre 50 et 300 px
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        Animated.timing(panelHeight, {
-          toValue: gestureState.dy < 0 ? 450 : 100, // Si glisse vers le haut -> 450px, sinon -> 50px
-          duration: 300,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
 
+    const panResponder = useRef(
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10, // Activer si l'utilisateur glisse verticalement
+        onPanResponderMove: (_, gestureState) => {
+          // Empêcher de descendre au-delà de la valeur minimale de 35 et ajuster le mouvement
+          panelHeight.setValue(Math.max(35, Math.min(500, 500 - gestureState.dy)));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          // Si on glisse vers le haut, on étend le panneau, sinon on le rétracte
+          Animated.timing(panelHeight, {
+            toValue: gestureState.dy < 0 ? 500 : 35, // Si glisse vers le haut -> 500px, sinon -> 35px
+            duration: 300,
+            useNativeDriver: false,
+          }).start();
+        },
+      })
+    ).current;
+  
 
   useEffect(() => {
     (async () => {
@@ -59,13 +59,23 @@ const Ride = () => {
   
       // Obtenir la position actuelle
       let location = await Location.getCurrentPositionAsync({});
+
       setRegion({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       });
-  
+
+      // Obtenir l'orientation de la boussole
+      Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 1 },
+        (location) => {
+          setHeading(location.coords.heading || 0);
+        }
+      );
+
+      // Récupérer les données météo
       fetchWeather(location.coords.latitude, location.coords.longitude);
   
       // Activer le suivi en temps réel
@@ -80,17 +90,17 @@ const Ride = () => {
           });
   
           // Mise à jour de la caméra pour la vue "première personne"
-          if (mapRef.current) {
-            mapRef.current.animateCamera({
-              center: {
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              },
-              pitch: 60, // Inclinaison pour effet 3D
-              heading: location.coords.heading, // Orientation de la carte
-              zoom: 18, // Zoom proche du sol
-            });
-          }
+          // if (mapRef.current) {
+          //   mapRef.current.animateCamera({
+          //     center: {
+          //       latitude: location.coords.latitude,
+          //       longitude: location.coords.longitude,
+          //     },
+          //     pitch: 60, // Inclinaison pour effet 3D
+          //     heading: location.coords.heading, // Orientation de la carte
+          //     zoom: 18, // Zoom proche du sol
+          //   });
+          // }
         }
       );
     })();
@@ -136,7 +146,7 @@ const Ride = () => {
     };
 
     useEffect(() => {
-      if (region) {  // Vérification si region est défini avant d'utiliser
+      if (region) {  
         let interval;
         if (showWeather) {
           fetchWeather(region.latitude, region.longitude);
@@ -187,19 +197,18 @@ const Ride = () => {
 
     const url = `http://router.project-osrm.org/route/v1/car/${region.longitude},${region.latitude};${destinationCoords.longitude},${destinationCoords.latitude}?overview=full&geometries=polyline&steps=true`;
 
-
     try {
       const response = await axios.get(url, { headers: { "User-Agent": "BeRoadApp/1.0" } });
       console.log(response.data);
       const geometry = response.data.routes[0]?.geometry;
       if (!geometry) {
         Alert.alert('Erreur', 'Aucun itinéraire trouvé.');
-        setLoading(false); // Fin du chargement en cas d'erreur
         return;
       }
 
       const coordinates = decodePolyline(geometry);
       setRoute(coordinates);
+      setLoading(false);
 
       // Zoom sur l'itinéraire tracé
       if (mapRef.current && coordinates.length > 0) {
@@ -208,15 +217,13 @@ const Ride = () => {
           animated: true,  // Animation pour le zoom
         });
       }
-
+      
     } catch (error) {
       Alert.alert('Erreur', 'Erreur lors de la récupération de l\'itinéraire.');
       console.error(error);
-    } finally {
-      setLoading(false); // Fin du chargement
     }
-    
-  };
+};
+
 
   const getAddressSuggestions = async (query) => {
     if (query.length < 3) return []; // Ne cherche qu'après 3 lettres pour éviter trop de requêtes
@@ -262,7 +269,7 @@ const Ride = () => {
 
     // Animation de rétraction du panneau
     Animated.timing(panelHeight, {
-      toValue: 50, // Valeur de la hauteur réduite
+      toValue: 35, // Valeur de la hauteur réduite
       duration: 300, // Durée de l'animation (en ms)
       useNativeDriver: false, // Nous n'utilisons pas de transformation native pour la hauteur
     }).start();
@@ -271,19 +278,43 @@ const Ride = () => {
   };
 
   const moveToFirstPerson = () => {
-    if (mapRef.current) {
-      mapRef.current.animateCamera({
-        center: {
-          latitude: region.latitude,
-          longitude: region.longitude,
-        },
-        pitch: 60, // Inclinaison de la caméra pour une vue en 3D
-        heading: 0, // Orientation (0 = vers le nord)
-        altitude: 500, // Distance par rapport au sol
-        zoom: 18, // Zoom proche du sol
-      }, { duration: 1000 });
+    if (!isNavigating) {
+      // Activer la navigation
+      if (mapRef.current) {
+        mapRef.current.animateCamera({
+          center: {
+            latitude: region.latitude,
+            longitude: region.longitude,
+          },
+          pitch: 60,
+          heading: 0,
+          altitude: 500,
+          zoom: 18,
+        }, { duration: 1000 });
+      }
+      setIsNavigating(true);
+    } 
+    else {
+      // Désactiver la navigation
+      setRoute(null);  // Enlève l'itinéraire de la carte
+      setIsNavigating(false);
+      
+      // Revenir à la vue initiale avec la géolocalisation
+      if (mapRef.current) {
+        mapRef.current.animateCamera({
+          center: {
+            latitude: region.latitude,
+            longitude: region.longitude,
+          },
+          pitch: 0, // Annuler l'inclinaison pour revenir à la vue normale
+          heading: 0,
+          altitude: 1000, // Revenir à une vue plus éloignée
+          zoom: 15, // Zoom normal
+        }, { duration: 1000 });
+      }
     }
   };
+  
   
   const decodePolyline = (encoded) => {
     let points = [];
@@ -321,7 +352,7 @@ const Ride = () => {
   
   return (
     <View style={styles.container}>
-
+          
           {/* Affichage de la Map avec le tracé de l'itinéraire */}
           {region && (
              <View style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -329,33 +360,63 @@ const Ride = () => {
                   style={StyleSheet.absoluteFill}
                   //provider={PROVIDER_GOOGLE} 
                   initialRegion={region}
-                  showsUserLocation
+                  followsUserLocation={isNavigating}
+                  //showsUserLocation
                   //followsUserLocation
                   showsMyLocationButton
                   ref={mapRef}
                   >
-                  <Marker coordinate={region} title="Votre position" >
-                    {/* <Icon name="motorbike" size={50} color="white" /> */}
-                  </Marker>
+                 <Marker.Animated
+                    coordinate={region}  
+                    anchor={{ x: 0.5, y: 0.5 }} 
+                  >
+                    <Animated.Image
+                      source={require('../../assets/images/bike.png')} 
+                      style={{
+                        width: 50,   
+                        height: 50,
+                        transform: [{ rotate: `${heading}deg` }],
+                        backgroundColor: 'transparent', 
+                      }}
+                      resizeMode="contain"
+                    />
+                  </Marker.Animated>
+
+
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
                   {showWeather && <UrlTile
                     urlTemplate={rainLayerUrl}
-                    zIndex={999} // Assure que la couche est bien visible
-                    opacity={0.6} // Réglage de la transparence
+                    zIndex={999}
+                    opacity={0.6} 
                   />}
+
               </MapView>
             </View>
           )}
 
-          {/* Affichage du chargement pendant la récupération de la route */}
+          
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#0000ff" />
+              <ActivityIndicator size="large" color="#ffffff" /> 
+              <Text style={styles.loadingText}>Calcul de l'itinéraire...</Text> 
             </View>
           )}
 
+            {/* Bouton activation navigation */}
+          {route && (
+            <TouchableOpacity 
+              style={styles.startNavigationButton} 
+              onPress={moveToFirstPerson} // Appelle moveToFirstPerson quand le bouton est pressé
+            >
+              <Text style={styles.startNavigationText}>
+                {isNavigating ? 'Arrêter' : 'Y aller'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+
           {/* Bouton d'activation de la météo */}
-          <View style={{ position: 'absolute', top: 130, right: 10, zIndex: 10 }}>
+          <View style={{ position: 'absolute', top: 155, right: 5, zIndex: 10 }}>
           <TouchableOpacity
               onPress={() => {
                   const newShowWeather = !showWeather;
@@ -371,7 +432,7 @@ const Ride = () => {
           >
                 <Icon 
                   name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
-                  size={50} // Taille de l'icône
+                  size={55} // Taille de l'icône
                   color={showWeather ? 'black' : 'orange'} // Couleur de l'icône
                 />
             </TouchableOpacity>
@@ -391,7 +452,7 @@ const Ride = () => {
                   });
               }}
             >
-              <Icon name="spotify" size={50} color="dark" />
+              <Icon name="spotify" size={55} color="#1E2A3A" />
             </TouchableOpacity>
           </View>
 
@@ -421,16 +482,16 @@ const Ride = () => {
           <Animated.View
             style={{
               height: panelHeight,
-              backgroundColor: '#f0f0f0',
+              backgroundColor: '#1E2A3A', 
               padding: 10,
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
             }}
             
           >
-            <View style={{ height: 20, alignItems: 'center' }}
+            <View style={{ height: 30, alignItems: 'center' }}
             {...panResponder.panHandlers}>
-              <View style={{ width: 50, height: 5, backgroundColor: 'gray', borderRadius: 5, marginBottom: 10 }} />
+              <View style={{ width: 60, height: 5, backgroundColor: 'gray', borderRadius: 5, marginBottom: 10 }} />
             </View>
 
             <View style={styles.searchBarContainer}>
@@ -441,7 +502,7 @@ const Ride = () => {
               <TextInput
                 style={styles.searchInput}
                 placeholder="Entrez votre destination"
-                placeholderTextColor="gray"  //  olorer le texte du placeholder en noir
+                placeholderTextColor="gray"  
                 value={destination}
                 onChangeText={handleAddressChange}
               />
@@ -470,7 +531,7 @@ const Ride = () => {
                   <TouchableOpacity
                     style={{
                       padding: 10,
-                      backgroundColor: "#f0f0f0", // Utilisation du même fond que le panneau
+                      backgroundColor: "#1E2A3A", 
                     }}
                     onPress={() => handleSelectAddress(item)}
                   >
@@ -485,7 +546,7 @@ const Ride = () => {
                 width: '100%',  
               }}
               ItemSeparatorComponent={() => (
-                <View style={{ height: 1, backgroundColor: '#ddd', marginHorizontal: 10 }} />
+                <View style={{ height: 1, backgroundColor: '#fff', marginHorizontal: 10 }} />
               )}
             />
 
@@ -500,9 +561,7 @@ export default Ride;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBar: { flexDirection: 'column', alignItems: 'center', padding: 10, backgroundColor: '#fff' },
-  input: { width: '90%', height: 40, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 8, borderRadius: 5, marginBottom: 10 },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '90%' },
+
   icon: {
     marginRight: 10, // Espace entre l'icône et le champ de texte
   },
@@ -510,13 +569,14 @@ const styles = StyleSheet.create({
   //Icone spotify
   spotifyIconContainer: {
     position: 'absolute',
-    top: 60,
-    right:2, // Alignement à gauche
+    top: 90,
+    right:-5, // Alignement à gauche
     backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
     padding: 10,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    color: '#1E2A3A'
   },
 
   //KPI météo dynamique
@@ -524,7 +584,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 50, 
     left: 10,  // Positionnement en haut à gauche
-    backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Fond semi-transparent
     padding: 10,
     borderRadius: 10,
     flexDirection: 'row',  // Disposition horizontale (icône + texte)
@@ -556,12 +616,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     //backgroundColor: '#fff',
     paddingHorizontal: 15,
-    borderRadius: 8,
+    //borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 3,  // Pour l'effet de l'ombre sur Android
+    //elevation: 3,  // Pour l'effet de l'ombre sur Android
     marginTop: 20,
     marginBottom: 20,
     width: '100%',
@@ -574,6 +634,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingLeft: 10,
     fontSize: 16,
+    color:'orange', 
+    fontWeight: 'bold',
     
   },
 
@@ -599,19 +661,53 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 16,  
-    color: "#333",  
+    color: "orange",  
     fontWeight: '600',  
     lineHeight: 24,  
   },
 
   loadingContainer: {
+    backgroundColor: 'black',  
+    justifyContent: 'center',  
+    alignItems: 'center',     
+    position: 'absolute',      
+    top: '50%',               
+    left: '50%',               
+    transform: [{ translateX: -75 }, { translateY: -50 }],
+    width: 150,               
+    height: 100,              
+    borderRadius: 10,          
+    zIndex: 1000,              
+    flexDirection: 'row',      
+    padding: 10,               
+  },
+  loadingText: {
+    color: 'white',            
+    fontSize: 16,             
+    marginLeft: 10,            
+  },
+
+  startNavigationButton: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
+    bottom: 50, // Juste au-dessus du panneau
+    left: 150,
+    right: 150,
+    backgroundColor: '#1E2A3A',
+    paddingVertical: 15,
+    borderRadius: 50,
     alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5, // Ombre sur Android
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    zIndex: 0,
+  },
+  startNavigationText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   
 });
