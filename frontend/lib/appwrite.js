@@ -125,16 +125,22 @@ export async function findRegisteredContacts(contacts) {
 
         if (phoneNumbers.length === 0) return [];
 
-        // Recherche dans la base de données les utilisateurs qui ont ces numéros
-        const registeredContacts = await databases.listDocuments(
-            appwriteConfig.databaseId,
-            appwriteConfig.userCollectionId,
-            [Query.in('telephone', phoneNumbers)]
-        );
+        const registeredContacts = [];
+
+        // Pour chaque numéro de téléphone, on effectue une requête avec Query.equal
+        for (const phoneNumber of phoneNumbers) {
+            const result = await databases.listDocuments(
+                appwriteConfig.databaseId,
+                appwriteConfig.userCollectionId,
+                [Query.equal('telephone', phoneNumber)]
+            );
+            // Ajouter les utilisateurs trouvés
+            registeredContacts.push(...result.documents);
+        }
 
         // On associe les contacts aux utilisateurs enregistrés
         const filteredContacts = contacts.filter(contact =>
-            registeredContacts.documents.some(user => user.telephone === contact.phoneNumbers?.[0]?.number)
+            registeredContacts.some(user => user.telephone === contact.phoneNumbers?.[0]?.number)
         );
 
         return filteredContacts;
@@ -143,6 +149,7 @@ export async function findRegisteredContacts(contacts) {
         return [];
     }
 }
+
 
 export async function getFriends(userId) {
     try {

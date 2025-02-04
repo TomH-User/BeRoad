@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {Button, FlatList, SafeAreaView, StyleSheet, Text, TextInput, View} from "react-native";
 import ContactRow from "../crewUtils/ContactRow";
+import { findRegisteredContacts } from "../../lib/appwrite";
 
 const Crew = () => {
   const [contacts, setContacts] = useState([]);
@@ -20,25 +21,29 @@ const Crew = () => {
     getPermission();
   }, []);
 
-  const searchContacts = async () => {
+const searchContacts = async () => {
     setIsLoading(true);
 
     const config = { sort: Contacts.SortTypes.FirstName };
     if (search !== "") {
-      config.name = search;
+        config.name = search;
     }
 
-    const loadedContacts = (await Contacts.getContactsAsync(config)) || {
-      data: [],
-    };
-    setContacts(loadedContacts.data);
-    setIsLoading(false);
-  };
+    const loadedContacts = (await Contacts.getContactsAsync(config)) || { data: [] };
 
-  const editContact = async (id) => {
-    await Contacts.presentFormAsync(id);
-    searchContacts();
-  };
+    if (loadedContacts.data.length === 0) {
+        setContacts([]);
+        setIsLoading(false);
+        return;
+    }
+
+    // Filtrer les contacts enregistrés
+    const registeredContacts = await findRegisteredContacts(loadedContacts.data);
+
+    setContacts(registeredContacts);
+    setIsLoading(false);
+};
+
 
 
   return (
@@ -63,7 +68,6 @@ const Crew = () => {
           renderItem={(contact) => (
             <ContactRow
               contact={contact.item}
-              editContact={editContact}
             />
           )}
         />
