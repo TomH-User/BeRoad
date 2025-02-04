@@ -38,7 +38,6 @@ const searchContacts = async () => {
     }
 
     // Filtrer les contacts enregistrés
-    console.log(loadedContacts.data);
     const registeredContacts = await findRegisteredContacts(loadedContacts.data);
 
     setContacts(registeredContacts);
@@ -73,13 +72,17 @@ const searchContacts = async () => {
           )}
         />
       )}
-      <StatusBar style="auto" />
+        <StatusBar 
+        backgroundColor='#161622'
+        style='light'
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     flex: 1,
     backgroundColor: "#fff",
     alignItems: "center",

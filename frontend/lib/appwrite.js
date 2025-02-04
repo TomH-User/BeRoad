@@ -136,9 +136,14 @@ export async function findRegisteredContacts(contacts) {
         // Exécution des requêtes en parallèle
         const results = await Promise.all(queries);
 
-        // Collecte tous les utilisateurs trouvés
+        // Collecte tous les utilisateurs trouvés avec leur accountId
         const registeredContacts = results.reduce((acc, result) => {
-            acc.push(...result.documents);
+            result.documents.forEach(doc => {
+                acc.push({
+                    ...doc, // Ajoute le document complet
+                    accountId: doc.accountId // Ajoute l'accountId
+                });
+            });
             return acc;
         }, []);
 
@@ -147,12 +152,22 @@ export async function findRegisteredContacts(contacts) {
             registeredContacts.some(user => user.telephone === contact.phoneNumbers?.[0]?.number)
         );
 
-        return filteredContacts;
+        // Ajoute l'accountId aux contacts filtrés
+        const contactsWithAccountId = filteredContacts.map(contact => {
+            const user = registeredContacts.find(user => user.telephone === contact.phoneNumbers?.[0]?.number);
+            return {
+                ...contact,
+                accountId: user?.accountId // Ajoute l'accountId si trouvé
+            };
+        });
+
+        return contactsWithAccountId;
     } catch (error) {
         console.log(error.message);
         return [];
     }
 }
+
 
 
 export async function getFriends(userId) {
