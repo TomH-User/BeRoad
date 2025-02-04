@@ -19,6 +19,10 @@
         "backgroundColor": "#ffffff"
       }
     },
+    "permissions": [
+      "android.permission.READ_CONTACTS",
+      "android.permission.WRITE_CONTACTS"
+    ],
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -26,6 +30,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow $(PRODUCT_NAME) to access your contacts"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -35,9 +45,6 @@
           "backgroundColor": "#ffffff"
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }

@@ -26,7 +26,17 @@ const avatars = new Avatars(client);
 const databases = new Databases(client);
 
 // Register the user
-export async function createUser(email, password, username, pseudo, telephone, motoModel, socialLink, conduiteType, motoType, experiencesCommunity) {
+export async function createUser(
+    email, 
+    password, 
+    username, 
+    telephone, 
+    motoModel, 
+    socialLink, 
+    conduiteType,
+    motoType, 
+    experiencesCommunity
+) {
     try {
         const newAccount = await account.create(
             ID.unique(),
@@ -49,7 +59,6 @@ export async function createUser(email, password, username, pseudo, telephone, m
                 accountId: newAccount.$id,
                 email: email,
                 username: username,
-                pseudo: pseudo,
                 telephone: telephone,
                 motoModel: motoModel,
                 socialLink: socialLink,
@@ -109,12 +118,113 @@ export async function signOut() {
     }
 }
 
-export async function findRegisteredContacts(phoneNumbers) {
-    const response = await databases.listDocuments(
-      "database_id",
-      "userCollectionId",
-      [Query.contains("phone", phoneNumbers)]
-    );
-  
-    return response.documents; // Liste des utilisateurs trouvés
-  }
+export async function findRegisteredContacts(contacts) {
+    try {
+        // On crée une liste des numéros de téléphone des contacts
+        const phoneNumbers = contacts.map(contact => contact.phoneNumbers?.[0]?.number).filter(Boolean);
+
+        if (phoneNumbers.length === 0) return [];
+
+        // Recherche dans la base de données les utilisateurs qui ont ces numéros
+        const registeredContacts = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            [Query.in('telephone', phoneNumbers)]
+        );
+
+        // On associe les contacts aux utilisateurs enregistrés
+        const filteredContacts = contacts.filter(contact =>
+            registeredContacts.documents.some(user => user.telephone === contact.phoneNumbers?.[0]?.number)
+        );
+
+        return filteredContacts;
+    } catch (error) {
+        console.log(error.message);
+        return [];
+    }
+}
+
+export async function getFriends(userId) {
+    try {
+        const friends = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            [Query.equal('userId', userId)]
+        );
+        return friends.documents;
+    } catch (error) {
+        console.log(error.message);
+        return [];
+    }
+}
+
+export async function sendFriendRequest(userId, friendId) {
+    try {
+        const existingRequest = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('friendId', friendId)
+            ]
+        );
+
+        if (existingRequest.documents.length > 0) {
+            throw new Error("Demande d'ami déjà envoyée.");
+        }
+
+        const friendRequest = await databases.createDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            ID.unique(),
+            {
+                userId,
+                friendId,
+                status: 'pending' // En attente de validation
+            }
+        );
+
+        return friendRequest;
+    } catch (error) {
+        console.log(error.message);
+        throw new Error(error);
+    }
+}
+
+export async function acceptFriendRequest(requestId) {
+    try {
+        const updatedRequest = await databases.updateDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            requestId,
+            { status: 'accepted' }
+        );
+
+        return updatedRequest;
+    } catch (error) {
+        console.log(error.message);
+        throw new Error(error);
+    }
+}
+
+export async function checkFriendStatus(userId, friendId) {
+    try {
+        const friendStatus = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.friendsCollectionId,
+            [
+                Query.equal('userId', userId),
+                Query.equal('friendId', friendId)
+            ]
+        );
+
+        if (friendStatus.documents.length > 0) {
+            return friendStatus.documents[0].status; // "pending" ou "accepted"
+        }
+
+        return null; // Pas encore amis
+    } catch (error) {
+        console.log(error.message);
+        return null;
+    }
+}

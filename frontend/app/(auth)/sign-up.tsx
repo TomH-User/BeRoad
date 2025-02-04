@@ -13,7 +13,6 @@ type FormState = {
   username: string;
   email: string;
   password: string;
-  pseudo: string;
   telephone: string;
   motoModel: string;
   socialLink: string;
@@ -29,7 +28,6 @@ const SignUp = () => {
     username: "",
     email: "",
     password: "",
-    pseudo: "",
     telephone: "",
     motoModel: "",
     socialLink: "",
@@ -51,15 +49,25 @@ const SignUp = () => {
   };
 
   const submit = async () => {
-    const { username, email, password, pseudo, telephone } = form;
-    if (!username || !email || !password || !pseudo || !telephone) {
+    const { username, email, password, telephone } = form;
+    if (!username || !email || !password || !telephone) {
       Alert.alert("Erreur", "Merci de renseigner les champs obligatoires (*)");
       return;
     }
 
     setSubmitting(true);
     try {
-      const result = await createUser(form.email, form.password, form.username);
+      const result = await createUser(
+        form.email, 
+        form.password, 
+        form.username,
+        form.telephone,
+        form.motoModel,
+        form.socialLink,
+        form.conduiteType,
+        form.motoType,
+        form.experiencesCommunity
+      );
       setUser(result);
       setIsLogged(true);
       router.replace("/ride");
@@ -85,14 +93,14 @@ const SignUp = () => {
           </Text>
 
           <FormField
-            title="Nom d'utilisateur *"
+            title="Nom d'utilisateur "
             value={form.username}
             handleChangeText={(e: string) => setForm({ ...form, username: e })}
             otherStyles="mt-7"
           />
 
           <FormField
-            title="E-mail *"
+            title="E-mail "
             value={form.email}
             handleChangeText={(e: string) => setForm({ ...form, email: e })}
             otherStyles="mt-7"
@@ -100,21 +108,14 @@ const SignUp = () => {
           />
 
           <FormField
-            title="Mot de passe *"
+            title="Mot de passe"
             value={form.password}
             handleChangeText={(e: string) => setForm({ ...form, password: e })}
             otherStyles="mt-7"
           />
 
           <FormField
-            title="Pseudo *"
-            value={form.pseudo}
-            handleChangeText={(e: string) => setForm({ ...form, pseudo: e })}
-            otherStyles="mt-7"
-          />
-
-          <FormField
-            title="Téléphone *"
+            title="Téléphone"
             value={form.telephone}
             handleChangeText={(e: string) => setForm({ ...form, telephone: e })}
             otherStyles="mt-7"
