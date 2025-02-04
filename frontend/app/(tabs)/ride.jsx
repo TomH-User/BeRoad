@@ -132,33 +132,31 @@ const Ride = () => {
 
   //Version RainViewer
   const fetchRainViewerTiles = async () => {
-      try {
-          const response = await axios.get("https://api.rainviewer.com/public/weather-maps.json");
-          const radarData = response.data;
+    const now = Date.now();
+    const cachedRadarData = await AsyncStorage.getItem('rainViewerData');
+    const cachedTime = await AsyncStorage.getItem('rainViewerTimestamp');
 
-          const lastRadarID = radarData.radar.past.slice(-1)[0].path;
-          const tileUrl = `https://tilecache.rainviewer.com${lastRadarID}/256/{z}/{x}/{y}/2/1_1.png`;
+    if (cachedRadarData && cachedTime && now - parseInt(cachedTime) < 10 * 60 * 1000) {
+        console.log("Données RainViewer récupérées depuis le cache");
+        setRainLayerUrl(cachedRadarData);
+        return;
+    }
 
-          setRainLayerUrl(tileUrl);
-      } catch (error) {
-          console.error("Erreur lors du chargement des tuiles RainViewer", error);
-      }
-    };
+    try {
+        const response = await axios.get("https://api.rainviewer.com/public/weather-maps.json");
+        const radarData = response.data;
 
-    useEffect(() => {
-      if (region) {  
-        let interval;
-        if (showWeather) {
-          fetchWeather(region.latitude, region.longitude);
-          fetchRainViewerTiles();
-          interval = setInterval(() => {
-            fetchWeather(region.latitude, region.longitude);
-            fetchRainViewerTiles();
-          }, 10 * 60 * 1000);
-        }
-        return () => clearInterval(interval);
-      }
-    }, [showWeather, region]);
+        const lastRadarID = radarData.radar.past.slice(-1)[0].path;
+        const tileUrl = `https://tilecache.rainviewer.com${lastRadarID}/256/{z}/{x}/{y}/2/1_1.png`;
+
+        setRainLayerUrl(tileUrl);
+        await AsyncStorage.setItem('rainViewerData', tileUrl);
+        await AsyncStorage.setItem('rainViewerTimestamp', now.toString());
+    } catch (error) {
+        console.error("Erreur lors du chargement des tuiles RainViewer", error);
+    }
+};
+
 
   ///////////////////////////////////////////
 
@@ -202,7 +200,6 @@ const Ride = () => {
     
     try {
       const response = await axios.get(url, { headers: { "User-Agent": "BeRoadApp/1.0" } });
-      console.log(response.data);
       const geometry = response.data.routes[0]?.geometry;
       if (!geometry) {
         Alert.alert('Erreur', 'Aucun itinéraire trouvé.');
