@@ -38,7 +38,6 @@ const searchContacts = async () => {
     }
 
     // Filtrer les contacts enregistrés
-    console.log(loadedContacts.data);
     const registeredContacts = await findRegisteredContacts(loadedContacts.data);
 
     setContacts(registeredContacts);
