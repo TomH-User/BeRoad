@@ -8,14 +8,14 @@ import { findRegisteredContacts } from "../../lib/appwrite";
 
 const Crew = () => {
   const [contacts, setContacts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState();
 
   useEffect(() => {
     const getPermission = async () => {
       const { status } = await Contacts.requestPermissionsAsync();
       if (status === "granted") {
-        searchContacts();
+        //searchContacts();
       }
     };
     getPermission();
@@ -38,6 +38,7 @@ const searchContacts = async () => {
     }
 
     // Filtrer les contacts enregistrés
+    console.log(loadedContacts.data);
     const registeredContacts = await findRegisteredContacts(loadedContacts.data);
 
     setContacts(registeredContacts);
@@ -50,12 +51,12 @@ const searchContacts = async () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.row}>
         <TextInput
-          placeholder="Search"
+          placeholder="Rerchercher un contact"
           onChangeText={setSearch}
           value={search}
           style={styles.textInput}
         />
-        <Button title="Search" onPress={searchContacts} />
+        <Button title="Rechercher" onPress={searchContacts} />
       </View>
       {isLoading ? (
         <Text style={styles.list}>Loading...</Text>
@@ -64,7 +65,7 @@ const searchContacts = async () => {
           style={styles.list}
           data={contacts}
           keyExtractor={(contact) => contact.id}
-          ListEmptyComponent={() => <Text>No contacts!</Text>}
+          ListEmptyComponent={() => <Text>Pas encore de contact ? Faites une recherche !</Text>}
           renderItem={(contact) => (
             <ContactRow
               contact={contact.item}

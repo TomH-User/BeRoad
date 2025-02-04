@@ -1,4 +1,5 @@
 import { Account, Avatars, Client, ID, Databases, Query } from 'react-native-appwrite';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const appwriteConfig = {
     endpoint: 'https://cloud.appwrite.io/v1',
@@ -120,25 +121,28 @@ export async function signOut() {
 
 export async function findRegisteredContacts(contacts) {
     try {
-        // On crée une liste des numéros de téléphone des contacts
         const phoneNumbers = contacts.map(contact => contact.phoneNumbers?.[0]?.number).filter(Boolean);
-
         if (phoneNumbers.length === 0) return [];
 
-        const registeredContacts = [];
-
-        // Pour chaque numéro de téléphone, on effectue une requête avec Query.equal
-        for (const phoneNumber of phoneNumbers) {
-            const result = await databases.listDocuments(
+        // Création des promesses pour chaque numéro de téléphone
+        const queries = phoneNumbers.map(phoneNumber =>
+            databases.listDocuments(
                 appwriteConfig.databaseId,
                 appwriteConfig.userCollectionId,
                 [Query.equal('telephone', phoneNumber)]
-            );
-            // Ajouter les utilisateurs trouvés
-            registeredContacts.push(...result.documents);
-        }
+            )
+        );
 
-        // On associe les contacts aux utilisateurs enregistrés
+        // Exécution des requêtes en parallèle
+        const results = await Promise.all(queries);
+
+        // Collecte tous les utilisateurs trouvés
+        const registeredContacts = results.reduce((acc, result) => {
+            acc.push(...result.documents);
+            return acc;
+        }, []);
+
+        // Filtrage des contacts enregistrés
         const filteredContacts = contacts.filter(contact =>
             registeredContacts.some(user => user.telephone === contact.phoneNumbers?.[0]?.number)
         );
