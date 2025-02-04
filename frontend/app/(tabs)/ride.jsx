@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, View, StatusBar, TextInput, TouchableOpacity, Text, Alert, Animated, PanResponder, FlatList } from 'react-native';
+import { StyleSheet, View, StatusBar, TextInput, TouchableOpacity, Text, Alert, Animated, PanResponder, FlatList,KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, UrlTile, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -105,7 +105,7 @@ const Ride = () => {
       );
     })();
   }, []);
-  
+
 
   const fetchWeather = async (lat, lon) => {
     const now = Date.now();
@@ -184,45 +184,55 @@ const Ride = () => {
       Alert.alert('Erreur', 'La localisation actuelle est indisponible.');
       return;
     }
-
+  
     if (!destination.trim()) {
       Alert.alert('Erreur', 'Veuillez entrer une destination.');
       return;
     }
-
+  
     setLoading(true); // Démarre le chargement
-
+  
     const destinationCoords = await getCoordinatesFromAddress(destination);
-    if (!destinationCoords) return;
-
+    if (!destinationCoords) {
+      setLoading(false); // Arrête le chargement si les coordonnées ne sont pas trouvées
+      return;
+    }
+  
     const url = `http://router.project-osrm.org/route/v1/car/${region.longitude},${region.latitude};${destinationCoords.longitude},${destinationCoords.latitude}?overview=full&geometries=polyline&steps=true`;
-
+    
     try {
       const response = await axios.get(url, { headers: { "User-Agent": "BeRoadApp/1.0" } });
       console.log(response.data);
       const geometry = response.data.routes[0]?.geometry;
       if (!geometry) {
         Alert.alert('Erreur', 'Aucun itinéraire trouvé.');
+        setLoading(false); // Arrête le chargement si aucun itinéraire n'est trouvé
         return;
       }
-
+  
       const coordinates = decodePolyline(geometry);
       setRoute(coordinates);
-      setLoading(false);
-
+      
+  
       // Zoom sur l'itinéraire tracé
       if (mapRef.current && coordinates.length > 0) {
         mapRef.current.fitToCoordinates(coordinates, {
-          edgePadding: { top: 50, right: 20, bottom: 100, left: 20}, // Ajustez les marges autour de l'itinéraire
+          edgePadding: { top: 50, right: 20, bottom: 100, left: 20 }, // Ajustez les marges autour de l'itinéraire
           animated: true,  // Animation pour le zoom
         });
       }
-      
+  
+      // Ajoutez un délai minimal pour que l'utilisateur voie la notification
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000); // Délai de 1 seconde
+  
     } catch (error) {
       Alert.alert('Erreur', 'Erreur lors de la récupération de l\'itinéraire.');
       console.error(error);
+      setLoading(false); // Arrête le chargement en cas d'erreur
     }
-};
+  };
 
 
   const getAddressSuggestions = async (query) => {
@@ -366,21 +376,24 @@ const Ride = () => {
                   showsMyLocationButton
                   ref={mapRef}
                   >
-                 <Marker.Animated
-                    coordinate={region}  
-                    anchor={{ x: 0.5, y: 0.5 }} 
-                  >
-                    <Animated.Image
-                      source={require('../../assets/images/bike.png')} 
-                      style={{
-                        width: 50,   
-                        height: 50,
-                        transform: [{ rotate: `${heading}deg` }],
-                        backgroundColor: 'transparent', 
-                      }}
-                      resizeMode="contain"
-                    />
-                  </Marker.Animated>
+                 {region && (
+                    <Marker.Animated
+                      coordinate={region}  
+                      anchor={{ x: 0.5, y: 0.5 }} 
+                    >
+                      <Animated.Image
+                        source={require('../../assets/images/bike.png')} 
+                        style={{
+                          width: 50,   
+                          height: 50,
+                          transform: [{ rotate: `${heading}deg` }],
+                          backgroundColor: 'transparent', 
+                        }}
+                        resizeMode="contain"
+                      />
+                    </Marker.Animated>
+                  )}
+
 
 
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
@@ -406,7 +419,7 @@ const Ride = () => {
           {route && (
             <TouchableOpacity 
               style={styles.startNavigationButton} 
-              onPress={moveToFirstPerson} // Appelle moveToFirstPerson quand le bouton est pressé
+              onPress={moveToFirstPerson} 
             >
               <Text style={styles.startNavigationText}>
                 {isNavigating ? 'Arrêter' : 'Y aller'}
@@ -416,7 +429,7 @@ const Ride = () => {
 
 
           {/* Bouton d'activation de la météo */}
-          <View style={{ position: 'absolute', top: 155, right: 5, zIndex: 10 }}>
+          <View style={{ position: 'absolute', top : 110, right: 5, zIndex: 10 }}>
           <TouchableOpacity
               onPress={() => {
                   const newShowWeather = !showWeather;
@@ -431,9 +444,9 @@ const Ride = () => {
               }}
           >
                 <Icon 
-                  name={showWeather ? 'weather-sunny-off' : 'weather-sunny'} 
+                  name={showWeather ?  'weather-sunny' : 'weather-sunny-off'} 
                   size={55} // Taille de l'icône
-                  color={showWeather ? 'black' : 'orange'} // Couleur de l'icône
+                  color={showWeather ? 'orange' :'black'} // Couleur de l'icône
                 />
             </TouchableOpacity>
           </View>
@@ -477,8 +490,12 @@ const Ride = () => {
             </View>
           )}       
 
+
+      
         {/* Barre de recherche dépliable/repliable */}
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+
+        <KeyboardAvoidingView behavior="position" keyboardVerticalOffset={0}>
           <Animated.View
             style={{
               height: panelHeight,
@@ -524,8 +541,8 @@ const Ride = () => {
                 // Récupération de la ville
                 const city = addressParts[2]?.trim();
 
-                // Récupération du département
-                const department = addressParts[4]?.trim(); // Le département semble être à l'index 4
+                // // Récupération du département
+                // const department = addressParts[4]?.trim(); // Le département semble être à l'index 4
 
                 return (
                   <TouchableOpacity
@@ -536,7 +553,7 @@ const Ride = () => {
                     onPress={() => handleSelectAddress(item)}
                   >
                     <Text style={styles.suggestionText}>
-                        {street}, {city}, {department}
+                        {street}, {city}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -551,6 +568,7 @@ const Ride = () => {
             />
 
           </Animated.View>
+          </KeyboardAvoidingView>
         </View>
     
     </View>
@@ -569,7 +587,7 @@ const styles = StyleSheet.create({
   //Icone spotify
   spotifyIconContainer: {
     position: 'absolute',
-    top: 90,
+    top: 40,
     right:-5, // Alignement à gauche
     backgroundColor: 'rgba(0, 0, 0, 0)', // Fond semi-transparent
     padding: 10,
@@ -634,7 +652,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingLeft: 10,
     fontSize: 16,
-    color:'orange', 
+    color:'white', 
     fontWeight: 'bold',
     
   },
@@ -661,7 +679,7 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     fontSize: 16,  
-    color: "orange",  
+    color: "white",  
     fontWeight: '600',  
     lineHeight: 24,  
   },
