@@ -63,7 +63,13 @@ export default ContactRow = ({ contact }) => {
           <Text style={styles.pendingText}>En attente...</Text>
         </View>
       ) : (
-        <Button title="Ajouter ami" onPress={handleAddFriend} />
+        <Ionicons 
+          name="add-circle" 
+          size={30} 
+          color="blue" 
+          onPress={handleAddFriend} 
+          style={styles.addIcon} 
+        />
       )}
     </View>
   );
@@ -78,6 +84,9 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomWidth: 1,
     borderColor: "#ddd",
+  },
+  addIcon: {
+    padding: 5,
   },
   text: {
     fontSize: 16,
