@@ -75,8 +75,8 @@ const Profile: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.wrapper}>
-        <ScrollView style={styles.scrollContainer}>
+      <ScrollView>
+        <View style={styles.wrapper}>
           <View style={styles.card}>
             <Text style={styles.titleText}>Informations de base</Text>
             {renderImageSection(avatar)}
@@ -153,11 +153,11 @@ const Profile: React.FC = () => {
             <Button
               title="Déconnexion"
               onPress={logout}
-              color="#FF0000"
+              color="#FF0000" // Update if needed to align with new styling
             />
           </View>
-        </ScrollView>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -165,14 +165,12 @@ const Profile: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#primaryColorPlaceholder', // Match sign-in page background
-  },
-  wrapper: {
-    flex: 1,
+    backgroundColor: '#primary-color', // Ensure this matches the SignUp page
     padding: 16,
   },
-  scrollContainer: {
-    flexGrow: 1,
+  wrapper: {
+    justifyContent: 'center',
+    padding: 16,
   },
   card: {
     marginBottom: 20,
@@ -185,8 +183,8 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#textPrimaryPlaceholder', // Text color to match
+    fontWeight: '600', // Adjust to match font-psemibold or similar
+    color: '#gray-100', // Ensure matching text color
     marginBottom: 10,
   },
   infoContainer: {
@@ -205,12 +203,9 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     backgroundColor: 'lightgray',
   },
-  textBox: {
-    marginLeft: 16,
-  },
   subtitleText: {
     fontSize: 16,
-    color: '#textSecondaryPlaceholder', // Text color to match
+    color: '#gray-100',
   },
   logoutButton: {
     marginTop: 20,
@@ -226,6 +221,7 @@ const styles = StyleSheet.create({
   checkboxText: {
     flex: 1,
     fontSize: 16,
+    color: '#gray-100',
   },
   textInput: {
     height: 40,
@@ -234,6 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 8,
     borderRadius: 5,
+    backgroundColor: '#fff',
   },
 });
 
