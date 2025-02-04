@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from "react-native";
 import { getPendingFriendRequests, acceptFriendRequest, rejectFriendRequest, getCurrentUser, getUserDetails } from "../../lib/appwrite";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import StyledButton from '../../components/StyledButton';
 
-
-const friendRequests = () => {
+const FriendRequests = () => {
   const [requests, setRequests] = useState([]);
   const [userId, setUserId] = useState(null);
 
@@ -15,7 +15,7 @@ const friendRequests = () => {
     if (user.accountId) {
         const pendingRequests = await getPendingFriendRequests(user.accountId);
 
-        // Ajout des infos utilisateurs dans les demandes
+        // Adding user info to requests
         const requestsWithDetails = await Promise.all(
             pendingRequests.map(async (request) => {
                 const userDetails = await getUserDetails(request.userId);
@@ -32,26 +32,26 @@ const friendRequests = () => {
 
   const handleAccept = async (requestId) => {
     await acceptFriendRequest(requestId);
-    setRequests(requests.filter((req) => req.$id !== requestId)); // Mise à jour locale
+    setRequests(requests.filter((req) => req.$id !== requestId)); // Update locally
   };
 
   const handleReject = async (requestId) => {
     await rejectFriendRequest(requestId);
-    setRequests(requests.filter((req) => req.$id !== requestId)); // Mise à jour locale
+    setRequests(requests.filter((req) => req.$id !== requestId)); // Update locally
   };
 
   return (
     <View style={styles.container}>
-      {/* Icône d'actualisation en haut à droite */}
+      {/* Refresh icon at the top right */}
       <View style={styles.headerContainer}>
         <Text style={styles.header}>Demandes d'amis</Text>
         <TouchableOpacity onPress={fetchRequests}>
-          <Ionicons name="refresh" size={28} color="black" />
+          <Ionicons name="refresh" size={28} color="#FFA500" />
         </TouchableOpacity>
       </View>
 
       {requests.length === 0 ? (
-        <Text>Aucune demande en attente</Text>
+        <Text style={styles.noRequestsText}>Aucune demande en attente</Text>
       ) : (
         <FlatList
           data={requests}
@@ -63,8 +63,8 @@ const friendRequests = () => {
                 <Text style={styles.telephone}>{item.telephone}</Text>
               </View>
               <View style={styles.buttons}>
-                <Button title="Accepter" onPress={() => handleAccept(item.$id)} />
-                <Button title="Refuser" color="red" onPress={() => handleReject(item.$id)} />
+                <StyledButton title="Accepter" onPress={() => handleAccept(item.$id)} style={styles.acceptButton} />
+                <StyledButton title="Refuser" onPress={() => handleReject(item.$id)} style={styles.rejectButton} />
               </View>
             </View>
           )}
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#161622', // Dark blue background
   },
   headerContainer: {
     flexDirection: 'row',
@@ -87,15 +87,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   header: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    color: '#FFA500', // Orange color
   },
   requestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#FFA500', // Orange border color
     paddingBottom: 10,
   },
   userInfo: {
@@ -104,6 +105,7 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#FFFFFF', // White text
   },
   telephone: {
     fontSize: 14,
@@ -112,8 +114,21 @@ const styles = StyleSheet.create({
   buttons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: 185,
+    width: 180,
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50', // Green color for accept
+    width: '48%',
+  },
+  rejectButton: {
+    backgroundColor: '#F44336', // Red color for reject
+    width: '48%',
+  },
+  noRequestsText: {
+    color: '#FFFFFF', // White text
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 
-export default friendRequests;
+export default FriendRequests;

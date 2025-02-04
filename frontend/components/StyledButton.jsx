@@ -1,8 +1,9 @@
+import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-const StyledButton = ({ title, onPress }) => {
+const StyledButton = ({ title, onPress, style }) => {
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
+    <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
       <Text style={styles.buttonText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -10,25 +11,24 @@ const StyledButton = ({ title, onPress }) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#F59E0B', // Couleur de fond (vert)
+    backgroundColor: '#F59E0B', // Background color (orange)
     paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 25, // Bordures arrondies
-    shadowColor: '#000', // Ombre
+    borderRadius: 25, // Rounded borders
+    shadowColor: '#000', // Shadow
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5, // Pour Android
+    elevation: 5, // For Android
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 10,
-    width: 200, // Largeur fixe pour un meilleur contrôle
-    flex: 1,
+    // Removed fixed width
+    flexDirection: 'row',
   },
   buttonText: {
-    color: '#161622', // Couleur du texte
+    color: '#161622', // Text color
     fontSize: 18,
-    fontWeight: 'bold', // Gras
+    fontWeight: 'bold', // Bold
   },
 });
 
