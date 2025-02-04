@@ -27,7 +27,8 @@ export default ContactRow = ({ contact }) => {
 
   // Fonction pour envoyer une demande d'ami
   const handleAddFriend = async () => {
-    console.log('friendStatus', friendStatus);
+    console.log('userId', userId);
+    console.log('contact.accountId', contact.accountId);
     try {
       if (friendStatus === 'pending') {
         alert('Demande d\'ami déjà envoyée');
@@ -38,7 +39,7 @@ export default ContactRow = ({ contact }) => {
         alert('Vous êtes déjà amis');
         return;
       }
-
+      
       // Envoie une demande d'ami
       await sendFriendRequest(userId, contact.accountId);
       setFriendStatus('pending'); // Change le statut local pour refléter la demande en attente

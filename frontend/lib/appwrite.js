@@ -169,7 +169,6 @@ export async function findRegisteredContacts(contacts) {
 }
 
 
-
 export async function getFriends(userId) {
     try {
         const friends = await databases.listDocuments(
@@ -286,4 +285,4 @@ export async function updateUser(updatedData) {
       console.log(error.message);
       throw new Error(error);
     }
-  }
+}
