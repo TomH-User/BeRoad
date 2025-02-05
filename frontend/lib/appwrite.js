@@ -98,7 +98,6 @@ export const getCurrentUser = async () => {
         );
 
         if (!currentUser) throw Error;
-
         return currentUser.documents[0];
     } catch (error) {
         console.log(error.message);
@@ -281,7 +280,7 @@ export async function getPendingFriendRequests(userId) {
     }
   }
 
-  export async function getUserDetails(userId) {
+export async function getUserDetails(userId) {
     try {
         console.log("Fetching details for user:", userId);
         const response = await databases.listDocuments(
@@ -307,8 +306,6 @@ export async function getPendingFriendRequests(userId) {
         return { username: "Inconnu", telephone: "N/A" };
     }
 }
-
-
 
 export async function updateUser(updatedData) {
     try {
@@ -343,4 +340,22 @@ export async function updateUser(updatedData) {
     }
 }
 
+
+export async function setPosition(documentId, position) {
+    try {
+        const user = await databases.updateDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            documentId,
+            {
+                posLatitude: position.latitude,
+                posLongitude: position.longitude
+            }
+        );
+        return user;
+    } catch (error) {
+        console.log("Erreur lors de la mise à jour de la position :", error.message);
+        throw new Error(error);
+    }
+} 
 

@@ -11,6 +11,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Linking } from 'react-native';
 import { DeviceMotion } from 'expo-sensors';
 import { ActivityIndicator } from 'react-native';
+import { setPosition, getCurrentUser } from '@/lib/appwrite';
+
 
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
@@ -28,6 +30,7 @@ const Ride = () => {
   const panelHeight = useRef(new Animated.Value(35)).current; // Hauteur initiale réduite du panneau
   const [loading, setLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [userDocumentId, setUserDocumentId] = useState(null);
 
 
     const panResponder = useRef(
@@ -106,6 +109,45 @@ const Ride = () => {
     })();
   }, []);
 
+  //Actualisation de la position toutes les 5 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      sharePosition();
+    }, 5000); // Exécute sharePosition toutes les 5 secondes
+  
+    return () => clearInterval(interval); // Nettoyage pour éviter les doublons
+  }, [region]);
+
+
+
+  const sharePosition = async () => {
+    if (!region) {
+      Alert.alert('Erreur', 'La localisation actuelle est indisponible.');
+      return;
+    }
+  
+    try {
+      const user = await getCurrentUser();
+      setUserDocumentId(user.$id);
+      console.log("Document actuel :", user.$id);
+      if (!user || !user.$id) { 
+        console.error("Erreur : utilisateur introuvable ou ID manquant");
+        return; // Stoppe la fonction si l'utilisateur est invalide
+      }
+  
+      const position = {
+        latitude: region.latitude,
+        longitude: region.longitude,
+      };
+  
+      await setPosition(userDocumentId, position);
+    } catch (error) {
+      console.error("Erreur lors du partage de la position :", error);
+    }
+  };
+  
+
+  
 
   const fetchWeather = async (lat, lon) => {
     const now = Date.now();
