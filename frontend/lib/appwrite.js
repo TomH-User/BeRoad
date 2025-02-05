@@ -195,14 +195,22 @@ export async function getFriends(userId) {
         const friends = await databases.listDocuments(
             appwriteConfig.databaseId,
             appwriteConfig.friendsCollectionId,
-            [Query.equal('userId', userId)]
+            [
+                Query.or([
+                    Query.equal('userId', userId),
+                    Query.equal('friendId', userId)
+                ])
+            ]
         );
+        console.log("userId", userId);
+        console.log("friends", friends);
         return friends.documents;
     } catch (error) {
-        console.log(error.message);
+        console.log("Erreur lors de la récupération des amis :", error.message);
         return [];
     }
 }
+
 
 export async function sendFriendRequest(userId, friendId) {
     try {
@@ -343,4 +351,45 @@ export async function updateUser(updatedData) {
     }
 }
 
+
+export async function setPosition(documentId, position) {
+    try {
+        const user = await databases.updateDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            documentId,
+            {
+                posLatitude: position.latitude,
+                posLongitude: position.longitude
+            }
+        );
+        return user;
+    } catch (error) {
+        console.log("Erreur lors de la mise à jour de la position :", error.message);
+        throw new Error(error);
+    }
+}
+
+export async function getUserPosition(userId) {
+    try {
+        const user = await databases.getDocument(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            userId
+        );
+
+        if (!user || !user.posLatitude || !user.posLongitude) {
+            console.warn(`⚠️ Aucune position trouvée pour l'utilisateur ${userId}`);
+            return null;
+        }
+
+        return {
+            latitude: user.posLatitude,
+            longitude: user.posLongitude
+        };
+    } catch (error) {
+        console.error(`❌ Erreur lors de la récupération de la position de ${userId}:`, error.message);
+        return null;
+    }
+}
 

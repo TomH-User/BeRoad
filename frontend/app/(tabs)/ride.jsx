@@ -11,6 +11,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Linking } from 'react-native';
 import { DeviceMotion } from 'expo-sensors';
 import { ActivityIndicator } from 'react-native';
+import { setPosition, getCurrentUser, getUserPosition, getFriends} from '@/lib/appwrite';
+
 
 
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
@@ -28,6 +30,8 @@ const Ride = () => {
   const panelHeight = useRef(new Animated.Value(35)).current; // Hauteur initiale réduite du panneau
   const [loading, setLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [friendsPositions, setFriendsPositions] = useState([]);
 
 
     const panResponder = useRef(
@@ -105,6 +109,60 @@ const Ride = () => {
       );
     })();
   }, []);
+
+  //Actualisation de la position toutes les 5 secondes
+  useEffect(() => {
+    const interval = setInterval( async () => {
+      await sharePosition();
+    }, 5000); // Exécute sharePosition toutes les 5 secondes
+  
+    return () => clearInterval(interval); // Nettoyage pour éviter les doublons
+  }, [region]);
+
+
+  //Actualisation des positions des amis toutes les 10 secondes
+  useEffect(() => {
+
+    const fetchFriendsPositions = async () => {
+        const user = await getCurrentUser();
+        console.log("Utilisateur actuel :", user);
+        setUserId(user.$accountId);
+        const positions = await getFriendsPositions(userId);
+        setFriendsPositions(positions);
+    };
+
+    fetchFriendsPositions();
+    const interval = setInterval(fetchFriendsPositions, 10000);
+
+    return () => clearInterval(interval);
+}, [userId]);
+
+
+
+  const sharePosition = async () => {
+    if (!region) {
+        Alert.alert('Erreur', 'La localisation actuelle est indisponible.');
+        return;
+    }
+
+    try {
+        const user = await getCurrentUser();
+        if (!user || !user.$id) { 
+            console.error("Erreur : utilisateur introuvable ou ID manquant");
+            return; 
+        }
+
+        const position = {
+            latitude: region.latitude,
+            longitude: region.longitude,
+        };
+
+        console.log("Document actuel :", user.$id);
+        await setPosition(user.$id, position);
+    } catch (error) {
+        console.error("Erreur lors du partage de la position :", error);
+    }
+};
 
 
   const fetchWeather = async (lat, lon) => {
@@ -321,6 +379,33 @@ const Ride = () => {
       }
     }
   };
+
+  const getFriendsPositions = async (userId) => {
+        try {
+            // 1️⃣ Récupérer la liste des amis
+            const friends = await getFriends(userId);
+            console.log("Amis trouvés :", friends);
+
+            if (!friends || friends.length === 0) {
+                console.warn("⚠️ Aucun ami trouvé.");
+                return [];
+            }
+
+            // 2️⃣ Récupérer la position de chaque ami
+            const friendsPositions = await Promise.all(
+                friends.map(async (friend) => {
+                    const position = await getUserPosition(friend.friendId); // Assure-toi que `friend.friendId` est correct
+                    return position ? { id: friend.friendId, ...position } : null;
+                })
+            );
+
+            // 3️⃣ Filtrer les positions nulles (si certains amis n'ont pas de position)
+            return friendsPositions.filter(pos => pos !== null);
+        } catch (error) {
+            console.error("❌ Erreur lors de la récupération des positions des amis:", error.message);
+            return [];
+        }
+    };
   
   
   const decodePolyline = (encoded) => {
@@ -391,6 +476,23 @@ const Ride = () => {
                     </Marker.Animated>
                   )}
 
+                  {/* Marqueurs des amis */}
+                  {friendsPositions.map((friend) => (
+                      <Marker
+                          key={friend.id}
+                          coordinate={{
+                              latitude: friend.latitude,
+                              longitude: friend.longitude,
+                          }}
+                          title={`Ami : ${friend.id}`}
+                      >
+                          <Image 
+                              source={require('../../assets/images/bike.png')} 
+                              style={{ width: 40, height: 40 }} 
+                              resizeMode="contain"
+                          />
+                      </Marker>
+                  ))}
 
 
                   {route && <Polyline coordinates={route} strokeWidth={5} strokeColor="blue" />}
