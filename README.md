@@ -1,6 +1,6 @@
 <h1 style="text-align: center;">BeRoad🏍️</h1>
 <p style="text-align: center;">
-  <img src="https://github.com/user-attachments/assets/3020e5d8-e6f2-4e6d-862c-4521e3445119" alt="description de l'image" width="300"/>
+  <img src="https://github.com/user-attachments/assets/3020e5d8-e6f2-4e6d-862c-4521e3445119" alt="description de l'image" width="250"/>
 </p>
 
 **BeRoad** est un projet d'application mobile dédiée aux motards permettant la navigation en groupe, la communication en temps réel. L'appli est pensée pour offrir des fonctionnalités de suivi de position des membres, de création et partage d’itinéraires, ainsi qu’un chat en temps réel. L'objectif est de proposer à terme des recommandations personnalisées aux utilisateurs en fonction de leurs informations (balades, crew...).
